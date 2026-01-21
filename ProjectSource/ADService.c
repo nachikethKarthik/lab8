@@ -21,10 +21,9 @@
    next lower level in the hierarchy that are sub-machines to this machine
 */
 #include "../ProjectHeaders/ADService.h"
-#include "StepService.h"
+#include "../ProjectHeaders/MotorService.h"
 #include "ES_Configure.h"
 #include "ES_Framework.h"
-#include "TemplateService.h"
 #include "PIC32_AD_Lib.h"
 #include "dbprintf.h"
 /*----------------------------- Module Defines ----------------------------*/
@@ -32,7 +31,7 @@
 #define AD_SAMPLE_PERIOD_MS   20
 //#define POT_AN                5
 #define POT_CHANNEL_SET       (1U << 5)
-#define STEP_INTERVAL_MAX_MS  10
+#define STEP_INTERVAL_MAX_MS  1023
 #define STEP_INTERVAL_MIN_MS  1
 
 /*---------------------------- Module Functions ---------------------------*/
@@ -150,7 +149,7 @@ ES_Event_t RunADService(ES_Event_t ThisEvent)
         ES_Event_t NewEvent;
         NewEvent.EventType   = ES_AD;
         NewEvent.EventParam  = StepIntervalMs;
-        PostStepService(NewEvent);
+        PostMotorService(NewEvent);
         
       }
       break;

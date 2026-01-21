@@ -20,36 +20,21 @@
 /* include header files for this state machine as well as any machines at the
    next lower level in the hierarchy that are sub-machines to this machine
 */
-#include "../ProjectHeaders/MotorService.h"
-#include "ADService.h"
-
-#include <xc.h>
 #include "ES_Configure.h"
 #include "ES_Framework.h"
-#include "ES_DeferRecall.h"
-#include "ES_Port.h"
-#include "terminal.h"
-#include "dbprintf.h"
+#include "TemplateService.h"
 
 /*----------------------------- Module Defines ----------------------------*/
 
-#define PBCLK_HZ 20000000UL
-
-#define PWM_FREQ_HZ 200UL
-#define T2_PRESCALE 4
 /*---------------------------- Module Functions ---------------------------*/
 /* prototypes for private functions for this service.They should be functions
    relevant to the behavior of this service
 */
-static void InitPWM(void);
-static void SetDuty(uint8_t duty_present);
+
 /*---------------------------- Module Variables ---------------------------*/
 // with the introduction of Gen2, we need a module level Priority variable
 static uint8_t MyPriority;
-static uint16_t pr2_value = 0;
-static uint16_t duty_counts = 0;
-static uint16_t adc;
-static uint16_t duty;
+
 /*------------------------------ Module Code ------------------------------*/
 /****************************************************************************
  Function
@@ -69,7 +54,7 @@ static uint16_t duty;
  Author
      J. Edward Carryer, 01/16/12, 10:00
 ****************************************************************************/
-bool InitMotorService(uint8_t Priority)
+bool InitTemplateService(uint8_t Priority)
 {
   ES_Event_t ThisEvent;
 
@@ -78,16 +63,6 @@ bool InitMotorService(uint8_t Priority)
    in here you write your initialization code
    *******************************************/
   // post the initial transition event
-  TRISBbits.TRISB8 = 0;
-  
-  TRISBbits.TRISB10 = 0;
-  TRISBbits.TRISB11 = 0;
-  LATBbits.LATB10 = 1;
-  LATBbits.LATB11 = 0;
-  
-  InitPWM();
-  SetDuty(0);
-  
   ThisEvent.EventType = ES_INIT;
   if (ES_PostToService(MyPriority, ThisEvent) == true)
   {
@@ -116,7 +91,7 @@ bool InitMotorService(uint8_t Priority)
  Author
      J. Edward Carryer, 10/23/11, 19:25
 ****************************************************************************/
-bool PostMotorService(ES_Event_t ThisEvent)
+bool PostTemplateService(ES_Event_t ThisEvent)
 {
   return ES_PostToService(MyPriority, ThisEvent);
 }
@@ -138,63 +113,19 @@ bool PostMotorService(ES_Event_t ThisEvent)
  Author
    J. Edward Carryer, 01/15/12, 15:23
 ****************************************************************************/
-ES_Event_t RunMotorService(ES_Event_t ThisEvent)
+ES_Event_t RunTemplateService(ES_Event_t ThisEvent)
 {
   ES_Event_t ReturnEvent;
   ReturnEvent.EventType = ES_NO_EVENT; // assume no errors
-
-  switch(ThisEvent.EventType){
-      case ES_INIT:
-          break;
-                
-      case ES_AD:
-          adc = ThisEvent.EventParam;
-          DB_printf("%d\n",adc);
-          duty = ((uint32_t)adc * 100UL) / 1023UL;
-          SetDuty((uint8_t)duty);
-          break;
-          
-      default:
-          break;    
-  }
-  
+  /********************************************
+   in here you write your service code
+   *******************************************/
   return ReturnEvent;
 }
 
 /***************************************************************************
  private functions
  ***************************************************************************/
-
-static void InitPWM(void){
-    T2CONbits.ON = 0;
-    T2CONbits.TCS = 0;
-    
-    //T2CON = 0;
-    //TMR2 = 0;
-    
-    pr2_value = (uint16_t)((PBCLK_HZ/(T2_PRESCALE * PWM_FREQ_HZ)) - 1);
-    PR2 = pr2_value;
-    T2CONbits.TCKPS = 0b010;  //pre-scale = 4 
-    T2CONbits.ON = 1;
-    
-    OC2CONbits.ON = 0;
-    OC2R = 0;
-    OC2RS = 0;
-    OC2CONbits.OCTSEL = 0;
-    OC2CONbits.OCM = 0b110;
-    RPB8Rbits.RPB8R = 0b0101;
-    OC2CONbits.ON = 1;
-    
-}
-
-static void SetDuty(uint8_t duty_precent){
-    if (duty_precent > 100) duty_precent = 100;
-    
-    duty_counts = (uint16_t)(((uint32_t)duty_precent * (uint32_t)(pr2_value + 1U))/100UL);
-    
-    OC2RS = duty_counts;
-       
-}
 
 /*------------------------------- Footnotes -------------------------------*/
 /*------------------------------ End of file ------------------------------*/
