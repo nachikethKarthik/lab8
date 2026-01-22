@@ -36,7 +36,7 @@
 
 #define PBCLK_HZ 20000000UL
 
-#define PWM_FREQ_HZ 200UL
+#define PWM_FREQ_HZ 10000UL
 #define T2_PRESCALE  4
 #define ENCODER_CHECK_MS 10
 #define T3_PRESCALE  4
@@ -189,7 +189,7 @@ ES_Event_t RunMotorService(ES_Event_t ThisEvent)
               uint16_t RPM = (60 * PBCLK_HZ)/(T3_PRESCALE * period * PPR);
               LATBbits.LATB13 = 0;
               LATBbits.LATB12 = 1;
-              DB_printf("RPM is %d\n", RPM);
+              DB_printf("Duty_cycle is %d, RPM is %d\n", duty, RPM);
               LATBbits.LATB12 = 0;
           }
           
