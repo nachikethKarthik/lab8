@@ -5,16 +5,18 @@
 
  ****************************************************************************/
 
-#ifndef ServTemplate_H
-#define ServTemplate_H
+#ifndef EnCoderIC_H
+#define EnCoderIC_H
 
 #include "ES_Types.h"
+#include <xc.h>
+#include <sys/attribs.h>
+//#include <stdbool.h>
+//#include <stdint.h>
 
-// Public Function Prototypes
+void EncoderIC_Init(void);
+uint16_t EncoderIC_GetPeriodTicks16(bool *newEdge);
+uint32_t EncoderIC_GetPeriodTicks32(bool *newEdge);
 
-bool InitTemplateService(uint8_t Priority);
-bool PostTemplateService(ES_Event_t ThisEvent);
-ES_Event_t RunTemplateService(ES_Event_t ThisEvent);
-
-#endif /* ServTemplate_H */
+#endif
 
