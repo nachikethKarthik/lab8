@@ -69,11 +69,11 @@ static TemplateState_t CurrentState;
 // with the introduction of Gen2, we need a module level Priority var as well
 static uint8_t MyPriority;
 uint8_t CG_command = 0x00;
-static uint32_t TapeADCResults[1];
+//static uint32_t TapeADCResults[1]; // Used for testing tape sensor
 /*------------------------------ Module Code ------------------------------*/
 /****************************************************************************
  Function
-     InitTemplateFSM
+     InitLab8Service
 
  Parameters
      uint8_t : the priorty of this service
@@ -117,7 +117,7 @@ bool InitLab8Service(uint8_t Priority)
 
 /****************************************************************************
  Function
-     PostTemplateFSM
+     PostLab8FSM
 
  Parameters
      EF_Event_t ThisEvent , the event to post to the queue
@@ -200,9 +200,12 @@ ES_Event_t RunLab8Service(ES_Event_t ThisEvent)
                 SPIOperate_SPI1_Send8Wait(CG_QUERY_BYTE);
                 CG_command = (uint8_t)SPI1BUF;
 //                DB_printf("CG Command = %u\r\n", CG_command);
-                
+/****************************************************************************
+ use for testing tape sensor
                 ADC_MultiRead(TapeADCResults);
                 DB_printf("Tape Sensor ADC: %d\n", TapeADCResults[0]);
+****************************************************************************/
+
                 switch(CG_command){
                     // 2. Respond to command
                     case 0x00: 
