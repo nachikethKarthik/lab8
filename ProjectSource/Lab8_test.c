@@ -169,181 +169,122 @@ bool PostLab8Service(ES_Event_t ThisEvent) {
 ****************************************************************************/
 ES_Event_t RunLab8Service(ES_Event_t ThisEvent)
 {
-  
-      // Send one byte and wait until SS rises (transaction done)
-  //SPIOperate_SPI1_Send8Wait(CG_QUERY_BYTE);
+    ES_Event_t ReturnEvent = { .EventType = ES_NO_EVENT };
 
-//     Read what came back during THIS transfer
-  //rx = (uint8_t)SPI1BUF;
-
-    // Print it
-  //DB_printf("RX = 0x%02X\r\n", rx);
-
-    // Slow down for observation
-    
-  ES_Event_t ReturnEvent;
-  ReturnEvent.EventType = ES_NO_EVENT; // assume no errors
-
-  switch (CurrentState)
-  {
-    case InitPState:        // If current state is initial Psedudo State
+    switch (CurrentState)
     {
-      if (ThisEvent.EventType == ES_INIT)    // only respond to ES_Init
-      {
-        // this is where you would put any actions associated with the
-        // transition from the initial pseudo-state into the actual
-        // initial state
-
-        // now put the machine into the actual initial state
-        CurrentState = UnlockWaiting;
-      }
-    }
-    break;
-
-    case UnlockWaiting:        // If current state is state one
-    {
-      switch (ThisEvent.EventType)
-      {
-
-        case ES_TIMEOUT:
+        case InitPState:
         {
-            if (ThisEvent.EventType == ES_INIT) // only respond to ES_Init
+            if (ThisEvent.EventType == ES_INIT)
             {
                 CurrentState = Waiting;
+                ES_Timer_InitTimer(QUERY_TIMER, 100);
             }
         }
-            break;
+        break;
 
         case Waiting:
         {
-            // Process the CG command to transition out of Waiting
-            if (ThisEvent.EventType == ES_TIMEOUT && ThisEvent.EventParam == QUERY_TIMER) {
+            if (ThisEvent.EventType == ES_TIMEOUT && ThisEvent.EventParam == QUERY_TIMER)
+            {
                 SPIOperate_SPI1_Send8Wait(CG_QUERY_BYTE);
                 CG_command = (uint8_t)SPI1BUF;
-//                DB_printf("CG Command = %u\r\n", CG_command);
-/****************************************************************************
- use for testing tape sensor
-                ADC_MultiRead(TapeADCResults);
-                DB_printf("Tape Sensor ADC: %d\n", TapeADCResults[0]);
-****************************************************************************/
 
-                switch(CG_command){
-                    // 2. Respond to command
-                    case 0x00: 
-                        // Stop motors
+                switch (CG_command)
+                {
+                    case 0x00:
+                        StopMotors();
                         break;
 
-                    case 0x02:
-                        // Rotate clockwise by 90
+                    case 0x02: // CW 90
                         RotateCW(100);
                         ES_Timer_InitTimer(ROTATION_TIMER, ROTATION_90_DURATION);
                         CurrentState = RotatingClockwise;
                         break;
 
-                    case 0x03:
-                        // Rotate clockwise by 45
+                    case 0x03: // CW 45
                         RotateCW(100);
                         ES_Timer_InitTimer(ROTATION_TIMER, ROTATION_45_DURATION);
                         CurrentState = RotatingClockwise;
                         break;
 
-                    case 0x04:
-                        // Rotate counter-clockwise by 90
+                    case 0x04: // CCW 90
                         RotateCCW(100);
                         ES_Timer_InitTimer(ROTATION_TIMER, ROTATION_90_DURATION);
                         CurrentState = RotatingCounterClockwise;
                         break;
 
-                    case 0x05:
-                        // Rotate counter-clockwise by 45
+                    case 0x05: // CCW 45
                         RotateCCW(100);
                         ES_Timer_InitTimer(ROTATION_TIMER, ROTATION_45_DURATION);
                         CurrentState = RotatingCounterClockwise;
                         break;
 
-                    case 0x08:
-                        // Forward half
+                    case 0x08: // forward half
                         M1Forward(50);
                         M2Forward(50);
                         ES_Timer_InitTimer(FORWARD_TIMER, FORWARD_DURATION);
                         CurrentState = DrivingForward;
                         break;
 
-                    case 0x09:
-                        // Forward full
-                        M1Forward(100);     // 100% duty cycle
+                    case 0x09: // forward full
+                        M1Forward(100);
                         M2Forward(100);
                         ES_Timer_InitTimer(FORWARD_TIMER, FORWARD_DURATION);
                         CurrentState = DrivingForward;
                         break;
 
-                    case 0x10:
-                        // Reverse half
+                    case 0x10: // reverse half
                         M1Backward(50);
                         M2Backward(50);
                         ES_Timer_InitTimer(BACKWARD_TIMER, BACKWARD_DURATION);
                         CurrentState = DrivingBackward;
                         break;
 
-                    case 0x11:
-                        // Reverse full
+                    case 0x11: // reverse full
                         M1Backward(100);
                         M2Backward(100);
                         ES_Timer_InitTimer(BACKWARD_TIMER, BACKWARD_DURATION);
                         CurrentState = DrivingBackward;
                         break;
 
-                    case 0x20:
-                        // Align with beacon
-                        RotateCCW(100);
-                        CurrentState = RotatingClockwise;
-                        break;
-
-                    case 0x40:
-                        // Drive forward until tape detected
+                    case 0x40: // forward until tape
                         M1Forward(100);
                         M2Forward(100);
                         CurrentState = DrivingForward;
                         break;
+
+                    default:
+                        break;
                 }
-            
-              ES_Timer_InitTimer(QUERY_TIMER, 100);
+
+                ES_Timer_InitTimer(QUERY_TIMER, 100);
             }
-            break;
         }
+        break;
 
         case DrivingForward:
         {
-            switch (ThisEvent.EventType) {
-                case ES_TAPE_DETECTED:
-                {
-                    StopMotors();
-                    CurrentState = Waiting;
-                    break;
-                }
-
-                case ES_TIMEOUT:
-                {
-                    if (ThisEvent.EventParam == FORWARD_TIMER) 
-                    {
-                        StopMotors();
-                        CurrentState = Waiting;
-                    }
-                    break;
-                }
+            if (ThisEvent.EventType == ES_TAPE_DETECTED)
+            {
+                StopMotors();
+                CurrentState = Waiting;
             }
-            break;
+            else if (ThisEvent.EventType == ES_TIMEOUT && ThisEvent.EventParam == FORWARD_TIMER)
+            {
+                StopMotors();
+                CurrentState = Waiting;
+            }
         }
         break;
 
         case DrivingBackward:
         {
-            if (ThisEvent.EventType == ES_TIMEOUT && ThisEvent.EventParam == BACKWARD_TIMER) 
+            if (ThisEvent.EventType == ES_TIMEOUT && ThisEvent.EventParam == BACKWARD_TIMER)
             {
                 StopMotors();
                 CurrentState = Waiting;
             }
-            break;
         }
         break;
 
@@ -367,10 +308,11 @@ ES_Event_t RunLab8Service(ES_Event_t ThisEvent)
         }
         break;
 
-    default:
-    ;
-} // end switch on Current State
-return ReturnEvent;
+        default:
+            break;
+    }
+
+    return ReturnEvent;
 }
 
 /****************************************************************************
