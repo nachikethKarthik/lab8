@@ -26,6 +26,7 @@
 #include "../ProjectHeaders/Lab8_test.h"
 #include "../ProjectHeaders/PIC32_SPI_HAL.h"
 
+
 #include <xc.h>
 
 #include "ES_Configure.h"
@@ -54,7 +55,8 @@ uint8_t CG_command = 0x00;
    relevant to the behavior of this state machine
 */
 static bool CG_SPI_Init(void);
-static bool Motors_Init(void);
+static bool Motor_PWM_Init(void);
+bool InitEventCheckerHardware(void);
 
 
 /*---------------------------- Module Variables ---------------------------*/
@@ -96,6 +98,7 @@ bool InitLab8Service(uint8_t Priority)
   
   CG_SPI_Init();
   Motor_PWM_Init();
+  InitEventCheckerHardware();
   
   ES_Timer_InitTimer(QUERY_TIMER, 100);
 
@@ -185,13 +188,7 @@ ES_Event_t RunLab8Service(ES_Event_t ThisEvent)
     {
       switch (ThisEvent.EventType)
       {
-        case ES_LOCK:  //If event is event one
 
-        {   // Execute action function for state one : event one
-          CurrentState = Locked;  //Decide what the next state will be
-        }
-        break;
-        
         case ES_TIMEOUT:
         {
             if (ThisEvent.EventParam == QUERY_TIMER)
@@ -200,61 +197,61 @@ ES_Event_t RunLab8Service(ES_Event_t ThisEvent)
                 SPIOperate_SPI1_Send8Wait(CG_QUERY_BYTE);
                 CG_command = (uint8_t)SPI1BUF;
                 DB_printf("CG Command = %u\r\n", CG_command);
-              
-                // 2. Respond to command
-                case 0x00: 
-                    // Stop motors
-                    break;
-                    
-                case 0x02: 
-                    // Rotate clockwise by 90
-                    break;
-                    
-                case 0x03: 
-                    // Rotate clockwise by 45
-                    break;
-                    
-                case 0x04: 
-                    // Rotate counter-clockwise by 90
-                    break;
-                    
-                case 0x05: 
-                    // Rotate counter-clockwise by 45
-                    break;
-                    
-                case 0x08:
-                    // Forward half
-                    break;
+                
+                switch(CG_command){
+                    // 2. Respond to command
+                    case 0x00: 
+                        // Stop motors
+                        break;
 
-                case 0x09:
-                    // Forward full
-                    break;
-                    
-                case 0x10:
-                    // Reverse half
-                    break;
-                        
-                case 0x11:
-                    // Reverse full
-                    break;
-                    
-                case 0x20:
-                    // Align with beacon
-                    
-                case 0x40:
-                    // Drive forward until tape detected
+                    case 0x02: 
+                        // Rotate clockwise by 90
+                        break;
+
+                    case 0x03: 
+                        // Rotate clockwise by 45
+                        break;
+
+                    case 0x04: 
+                        // Rotate counter-clockwise by 90
+                        break;
+
+                    case 0x05: 
+                        // Rotate counter-clockwise by 45
+                        break;
+
+                    case 0x08:
+                        // Forward half
+                        break;
+
+                    case 0x09:
+                        // Forward full
+                        break;
+
+                    case 0x10:
+                        // Reverse half
+                        break;
+
+                    case 0x11:
+                        // Reverse full
+                        break;
+
+                    case 0x20:
+                        // Align with beacon
+                        break;
+                    case 0x40:
+                        // Drive forward until tape detected
+                        break;
+                }
             
               
               
               ES_Timer_InitTimer(QUERY_TIMER, 100);
             }
             break;
-        }
-
-        // repeat cases as required for relevant events
-        default:
-          ;
-      }  // end switch on CurrentEvent
+        }break;
+ 
+      }break;  // end switch on CurrentEvent
     }
     break;
     // repeat state pattern as required for other states
@@ -357,4 +354,6 @@ static bool Motor_PWM_Init(void){
     
     return true;
 }
+
+
 
