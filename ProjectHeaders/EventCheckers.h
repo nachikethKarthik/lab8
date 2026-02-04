@@ -22,5 +22,11 @@
 // prototypes for event checkers
 
 bool Check4Keystroke(void);
+bool Check4Tape(void);
+
+bool InitEventCheckerHardware(void);
+
+
+
 
 #endif /* EventCheckers_H */
