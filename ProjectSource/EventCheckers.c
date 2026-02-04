@@ -97,8 +97,6 @@ bool Check4Lock(void)
 
 // Beacon detection parameters
 // Beacon frequency is 1427 Hz, so period is ~700 us
-// We'll count edges over a window and check if we see enough pulses
-#define BEACON_EDGE_WINDOW_MS  10   // Time window to count edges (ms)
 #define BEACON_MIN_EDGES       5   // Minimum edges to detect beacon (1427 Hz * 0.01s * 2 edges/cycle = ~28)
 
 /*---------------------------- Module Variables ---------------------------*/
@@ -107,9 +105,8 @@ static uint8_t LastTapeState = 0;  // 0 = no tape, 1 = tape detected
 
 // For beacon detection - track last state
 static uint8_t LastBeaconState = 0;  // 0 = no beacon, 1 = beacon detected
-static uint8_t LastRA2State = 0;     // For edge detection
+static uint8_t LastRA2State = 0;     // For beacon detection
 static uint32_t EdgeCount = 0;       // Count of edges seen
-static uint32_t LastEdgeCheckTime = 0;  // For timing the edge window
 
 // ADC results array - index 0 will have AN9 result
 static uint32_t ADCResults[1];
@@ -190,12 +187,68 @@ bool Check4Tape(void)
     ThisEvent.EventParam = (uint16_t)TapeSensorValue;  // Include ADC value as param
     ES_PostAll(ThisEvent);
     
-    DB_printf("Tape Event\n");
+//    DB_printf("Tape Event\n");
     ReturnVal = true;
   }
   
   // Update last state for next time
   LastTapeState = CurrentTapeState;
+  
+  return ReturnVal;
+}
+
+/****************************************************************************
+ Function
+   Check4Beacon
+ Parameters
+   None
+ Returns
+   bool: true if beacon detection state changed and event was posted
+ Description
+   Monitors the digital input on RA2 (from comparator) for the 1427 Hz
+   beacon signal. Counts edges and posts ES_BEACON_DETECTED
+   when the number of edges counted crosses a threshold.
+ 
+ Author
+   karthi24, 02042026
+****************************************************************************/
+bool Check4Beacon(void)
+{
+  bool ReturnVal = false;
+  uint8_t CurrentRA2 = PORTAbits.RA2;
+  
+  // Count edges (rising or falling)
+  if (CurrentRA2 != LastRA2State)
+  {
+    EdgeCount++;
+  }
+  LastRA2State = CurrentRA2;
+  
+  uint8_t CurrentBeaconState;
+  
+  // Determine if beacon is present based on edge count
+  if (EdgeCount >= BEACON_MIN_EDGES)
+  {
+    CurrentBeaconState = 1;  // Beacon detected
+  }
+  else
+  {
+    CurrentBeaconState = 0;  // No beacon
+  }
+  
+  // Check for transition: no beacon -> beacon detected
+  if ((CurrentBeaconState != LastBeaconState) && (CurrentBeaconState == 1))
+  {
+    ES_Event_t ThisEvent;
+    ThisEvent.EventType = ES_BEACON_DETECTED;
+    ThisEvent.EventParam = (uint16_t)EdgeCount;
+    ES_PostAll(ThisEvent);
+    ReturnVal = true;
+    EdgeCount = 0;  // reset AFTER posting event
+    DB_printf("Beacon detected Event\n");
+  }
+  
+  LastBeaconState = CurrentBeaconState;
   
   return ReturnVal;
 }

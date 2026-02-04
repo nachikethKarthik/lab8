@@ -110,17 +110,18 @@
 // Universal events occupy the lowest entries, followed by user-defined events
 typedef enum
 {
-  ES_NO_EVENT = 0,
-  ES_ERROR,                 /* used to indicate an error from the service */
-  ES_INIT,                  /* used to transition from initial pseudo-state */
-  ES_TIMEOUT,               /* signals that the timer has expired */
-  ES_SHORT_TIMEOUT,         /* signals that a short timer has expired */
-  /* User-defined events start here */
-  ES_NEW_KEY,               /* signals a new key received from terminal */
-  ES_LOCK,
-  ES_UNLOCK,
-  ES_AD,
-  ES_TAPE_DETECTED /* signals tape/line detected by sensor */
+    ES_NO_EVENT = 0,
+    ES_ERROR,                 /* used to indicate an error from the service */
+    ES_INIT,                  /* used to transition from initial pseudo-state */
+    ES_TIMEOUT,               /* signals that the timer has expired */
+    ES_SHORT_TIMEOUT,         /* signals that a short timer has expired */
+    /* User-defined events start here */
+    ES_NEW_KEY,               /* signals a new key received from terminal */
+    ES_LOCK,
+    ES_UNLOCK,
+    ES_AD,
+    ES_TAPE_DETECTED, /* signals tape/line detected by sensor */
+    ES_BEACON_DETECTED      /* signals beacon detected by IR receiver */
 }ES_EventType_t;
 
 /****************************************************************************/
