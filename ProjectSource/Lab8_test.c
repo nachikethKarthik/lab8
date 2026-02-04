@@ -55,7 +55,8 @@ next lower level in the hierarchy that are sub-machines to this machine
 #define FORWARD_DURATION 500
 #define BACKWARD_DURATION 500
 
-uint8_t CG_command = 0x00;
+
+
 /*---------------------------- Module Functions ---------------------------*/
 /* prototypes for private functions for this machine.They should be functions
 relevant to the behavior of this state machine
@@ -80,50 +81,57 @@ static TemplateState_t CurrentState;
 
 // with the introduction of Gen2, we need a module level Priority var as well
 static uint8_t MyPriority;
-
+uint8_t CG_command = 0x00;
+//static uint32_t TapeADCResults[1]; // Used for testing tape sensor
 /*------------------------------ Module Code ------------------------------*/
 
 /****************************************************************************
-Function
-InitTemplateFSM
+ Function
+     InitLab8Service
 
-Parameters
-uint8_t : the priorty of this service
+ Parameters
+     uint8_t : the priorty of this service
 
-Returns
-bool, false if error in initialization, true otherwise
+ Returns
+     bool, false if error in initialization, true otherwise
 
-Description
-Saves away the priority, sets up the initial transition and does any
-other required initialization for this state machine
-Notes
+ Description
+     Saves away the priority, sets up the initial transition and does any
+     other required initialization for this state machine
+ Notes
 
-Author
-J. Edward Carryer, 10/23/11, 18:55
- ****************************************************************************/
-bool InitLab8Service(uint8_t Priority) {
-    ES_Event_t ThisEvent;
+ Author
+     J. Edward Carryer, 10/23/11, 18:55
+****************************************************************************/
+bool InitLab8Service(uint8_t Priority)
+{
+  ES_Event_t ThisEvent;
 
-    MyPriority = Priority;
-    // put us into the Initial PseudoState
-    CurrentState = InitPState;
-    // post the initial transition event
-    ThisEvent.EventType = ES_INIT;
-    CG_SPI_Init();
-    Motor_PWM_Init();
-    InitEventCheckerHardware();
-    ES_Timer_InitTimer(QUERY_TIMER, 100);
+  MyPriority = Priority;
+  // put us into the Initial PseudoState
+  CurrentState = InitPState;
+  // post the initial transition event
+  ThisEvent.EventType = ES_INIT;
+  
+  CG_SPI_Init();
+  Motor_PWM_Init();
+  InitEventCheckerHardware();
+  
+  ES_Timer_InitTimer(QUERY_TIMER, 100);
 
-    if (ES_PostToService(MyPriority, ThisEvent) == true) {
-        return true;
-    } else {
-        return false;
-    }
+  if (ES_PostToService(MyPriority, ThisEvent) == true)
+  {
+    return true;
+  }
+  else
+  {
+    return false;
+  }
 }
 
 /****************************************************************************
-Function
-PostTemplateFSM
+ Function
+     PostLab8FSM
 
 Parameters
 EF_Event_t ThisEvent , the event to post to the queue
@@ -143,28 +151,61 @@ bool PostLab8Service(ES_Event_t ThisEvent) {
 }
 
 /****************************************************************************
-Function
-RunTemplateFSM
+ Function
+    RunLab8Service
 
-Parameters
-ES_Event_t : the event to process
+ Parameters
+   ES_Event_t : the event to process
 
-Returns
-ES_Event_t, ES_NO_EVENT if no error ES_ERROR otherwise
+ Returns
+   ES_Event_t, ES_NO_EVENT if no error ES_ERROR otherwise
 
-Description
-add your description here
-Notes
-uses nested switch/case to implement the machine.
-Author
-J. Edward Carryer, 01/15/12, 15:23
- ****************************************************************************/
-ES_Event_t RunLab8Service(ES_Event_t ThisEvent) {
-    ES_Event_t ReturnEvent;
-    ReturnEvent.EventType = ES_NO_EVENT; // assume no errors
+ Description
+   add your description here
+ Notes
+   uses nested switch/case to implement the machine.
+ Author
+   J. Edward Carryer, 01/15/12, 15:23
+****************************************************************************/
+ES_Event_t RunLab8Service(ES_Event_t ThisEvent)
+{
+  
+      // Send one byte and wait until SS rises (transaction done)
+  //SPIOperate_SPI1_Send8Wait(CG_QUERY_BYTE);
 
-    switch (CurrentState) {
-        case InitPState:
+//     Read what came back during THIS transfer
+  //rx = (uint8_t)SPI1BUF;
+
+    // Print it
+  //DB_printf("RX = 0x%02X\r\n", rx);
+
+    // Slow down for observation
+    
+  ES_Event_t ReturnEvent;
+  ReturnEvent.EventType = ES_NO_EVENT; // assume no errors
+
+  switch (CurrentState)
+  {
+    case InitPState:        // If current state is initial Psedudo State
+    {
+      if (ThisEvent.EventType == ES_INIT)    // only respond to ES_Init
+      {
+        // this is where you would put any actions associated with the
+        // transition from the initial pseudo-state into the actual
+        // initial state
+
+        // now put the machine into the actual initial state
+        CurrentState = UnlockWaiting;
+      }
+    }
+    break;
+
+    case UnlockWaiting:        // If current state is state one
+    {
+      switch (ThisEvent.EventType)
+      {
+
+        case ES_TIMEOUT:
         {
             if (ThisEvent.EventType == ES_INIT) // only respond to ES_Init
             {
@@ -178,12 +219,18 @@ ES_Event_t RunLab8Service(ES_Event_t ThisEvent) {
             // Process the CG command to transition out of Waiting
             if (ThisEvent.EventType == ES_TIMEOUT && ThisEvent.EventParam == QUERY_TIMER) {
                 SPIOperate_SPI1_Send8Wait(CG_QUERY_BYTE);
-                CG_command = (uint8_t) SPI1BUF;
-                DB_printf("CG Command: %u\r\n", CG_command);
+                CG_command = (uint8_t)SPI1BUF;
+//                DB_printf("CG Command = %u\r\n", CG_command);
+/****************************************************************************
+ use for testing tape sensor
+                ADC_MultiRead(TapeADCResults);
+                DB_printf("Tape Sensor ADC: %d\n", TapeADCResults[0]);
+****************************************************************************/
 
-                switch (CG_command) {
-                    case 0x00:
-                        StopMotors();
+                switch(CG_command){
+                    // 2. Respond to command
+                    case 0x00: 
+                        // Stop motors
                         break;
 
                     case 0x02:
@@ -259,8 +306,8 @@ ES_Event_t RunLab8Service(ES_Event_t ThisEvent) {
                         CurrentState = DrivingForward;
                         break;
                 }
-
-                ES_Timer_InitTimer(QUERY_TIMER, 100);
+            
+              ES_Timer_InitTimer(QUERY_TIMER, 100);
             }
             break;
         }

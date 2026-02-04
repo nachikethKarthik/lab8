@@ -42,6 +42,8 @@
 #include "EventCheckers.h"
 
 #include "../ProjectHeaders/PIC32_AD_Lib.h"
+#include "dbprintf.h"
+
 // This is the event checking function sample. It is not intended to be
 // included in the module. It is only here as a sample to guide you in writing
 // your own event checkers
@@ -91,7 +93,7 @@ bool Check4Lock(void)
 /*----------------------------- Module Defines ----------------------------*/
 
 // Tape sensor threshold - adjust this based on actual sensor readings
-#define TAPE_THRESHOLD 512  // Midpoint of 10-bit ADC (0-1023)
+#define TAPE_THRESHOLD 120  
 
 // Beacon detection parameters
 // Beacon frequency is 1427 Hz, so period is ~700 us
@@ -172,11 +174,11 @@ bool Check4Tape(void)
   // Adjust the comparison direction based on your sensor behavior
   if (TapeSensorValue < TAPE_THRESHOLD)
   {
-    CurrentTapeState = 1;  // Tape detected (low reflectance)
+    CurrentTapeState = 0;  // No tape detected
   }
   else
   {
-    CurrentTapeState = 0;  // No tape (high reflectance)
+    CurrentTapeState = 1;  // Tape detected 
   }
   
   // Check for transition: no tape -> tape detected
@@ -187,6 +189,8 @@ bool Check4Tape(void)
     ThisEvent.EventType = ES_TAPE_DETECTED;
     ThisEvent.EventParam = (uint16_t)TapeSensorValue;  // Include ADC value as param
     ES_PostAll(ThisEvent);
+    
+    DB_printf("Tape Event\n");
     ReturnVal = true;
   }
   
