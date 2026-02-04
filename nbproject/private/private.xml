@@ -3,16 +3,10 @@
     <editor-bookmarks xmlns="http://www.netbeans.org/ns/editor-bookmarks/2" lastBookmarkId="0"/>
     <open-files xmlns="http://www.netbeans.org/ns/projectui-open-files/2">
         <group>
-            <file>file:/U:/yuhaoh10/Lab6/ProjectHeaders/PIC32_AD_Lib.h</file>
-            <file>file:/U:/yuhaoh10/Lab6/ProjectSource/MotorService.c</file>
-            <file>file:/U:/yuhaoh10/Lab6/ProjectSource/ADService.c</file>
-            <file>file:/U:/yuhaoh10/Lab6/ProjectHeaders/MotorService.h</file>
-            <file>file:/U:/yuhaoh10/Lab6/ProjectHeaders/TestHarnessService0.h</file>
-            <file>file:/U:/yuhaoh10/Lab6/FrameworkHeaders/ES_Configure.h</file>
-            <file>file:/U:/yuhaoh10/Lab6/ProjectSource/TestHarnessService0.c</file>
-            <file>file:/U:/yuhaoh10/Lab6/ProjectHeaders/ADService.h</file>
-            <file>file:/U:/yuhaoh10/Lab6/ProjectSource/PIC32_AD_Lib.c</file>
-            <file>file:/U:/yuhaoh10/Lab6/ProjectSource/EncoderIC.c</file>
+            <file>file:/U:/yuhaoh10/Lab7/ProjectSource/MotorService.c</file>
+            <file>file:/U:/yuhaoh10/Lab7/ProjectSource/PIC32_AD_Lib.c</file>
+            <file>file:/U:/yuhaoh10/Lab7/ProjectSource/EncoderIC.c</file>
+            <file>file:/U:/yuhaoh10/Lab7/ProjectSource/ADService.c</file>
         </group>
     </open-files>
 </project-private>

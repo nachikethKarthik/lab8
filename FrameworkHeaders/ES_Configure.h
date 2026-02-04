@@ -33,7 +33,7 @@
 /****************************************************************************/
 // This macro determines that nuber of services that are *actually* used in
 // a particular application. It will vary in value from 1 to MAX_NUM_SERVICES
-#define NUM_SERVICES 2
+#define NUM_SERVICES 1
 
 /****************************************************************************/
 // These are the definitions for Service 0, the lowest priority service.
@@ -41,11 +41,11 @@
 // services are added in numeric sequence (1,2,3,...) with increasing
 // priorities
 // the header file with the public function prototypes
-#define SERV_0_HEADER "MotorService.h"
+#define SERV_0_HEADER "Lab8_test.h"
 // the name of the Init function
-#define SERV_0_INIT InitMotorService
+#define SERV_0_INIT InitLab8Service
 // the name of the run function
-#define SERV_0_RUN RunMotorService
+#define SERV_0_RUN RunLab8Service
 // How big should this services Queue be?
 #define SERV_0_QUEUE_SIZE 5
 
@@ -306,9 +306,9 @@ typedef enum
 // Unlike services, any combination of timers may be used and there is no
 // priority in servicing them
 #define TIMER_UNUSED ((pPostFunc)0)
-#define TIMER0_RESP_FUNC PostADService
-#define TIMER1_RESP_FUNC PostMotorService
-#define TIMER2_RESP_FUNC PostMotorService
+#define TIMER0_RESP_FUNC PostLab8Service
+#define TIMER1_RESP_FUNC TIMER_UNUSED
+#define TIMER2_RESP_FUNC TIMER_UNUSED
 #define TIMER3_RESP_FUNC TIMER_UNUSED
 #define TIMER4_RESP_FUNC TIMER_UNUSED
 #define TIMER5_RESP_FUNC TIMER_UNUSED
@@ -331,7 +331,5 @@ typedef enum
 // These symbolic names should be changed to be relevant to your application
 
 #define SERVICE0_TIMER 15
-#define AD_TIMER 0
-#define ENCODER_TIMER 1
-#define PRINT_TIMER 2
+#define QUERY_TIMER 0
 #endif /* ES_CONFIGURE_H */

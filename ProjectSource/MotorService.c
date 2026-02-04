@@ -21,7 +21,7 @@
    next lower level in the hierarchy that are sub-machines to this machine
 */
 #include "../ProjectHeaders/MotorService.h"
-#include "../ProjectHeaders/EncoderIC.h"
+//#include "../ProjectHeaders/EncoderIC.h"
 #include "ADService.h"
 
 #include <xc.h>
@@ -31,25 +31,35 @@
 #include "ES_Port.h"
 #include "terminal.h"
 #include "dbprintf.h"
+#include <sys/attribs.h>
 
 /*----------------------------- Module Defines ----------------------------*/
 
 #define PBCLK_HZ 20000000UL
 
-#define PWM_FREQ_HZ 10000UL
+#define PWM_FREQ_HZ 7000UL
 #define T2_PRESCALE  4
 #define ENCODER_CHECK_MS 10
 #define T3_PRESCALE  4
 #define PPR 512
+
+
+#define CTRL_TS_MS 2U
+#define CTRL_TS_S 0.002f
+
+#define MAX_RPM_CMD   350
+#define KP    0.08f
+#define KI    0.30f
+
+#define INT_MIN   0.0f
+#define INT_MAX   100.0f
 /*---------------------------- Module Functions ---------------------------*/
 /* prototypes for private functions for this service.They should be functions
    relevant to the behavior of this service
 */
 static void InitPWM(void);
 static void SetDuty(uint8_t duty_present);
-static void InitLED(void);
-static void LED_CLR(void);
-static void MapPeriodToBars(uint32_t period_LED);
+static void InitControlISR(void);
 /*---------------------------- Module Variables ---------------------------*/
 // with the introduction of Gen2, we need a module level Priority variable
 static uint8_t MyPriority;
@@ -59,6 +69,12 @@ static uint16_t adc;
 static uint16_t duty;
 static bool newEdge;
 static uint32_t period;
+
+
+static volatile uint16_t speed_cmd_rpm = 0;
+static volatile uint16_t speed_meas_rpm = 0;
+static volatile uint8_t duty_out = 0;
+static volatile float integ = 0.0f;
 /*------------------------------ Module Code ------------------------------*/
 /****************************************************************************
  Function
@@ -97,13 +113,20 @@ bool InitMotorService(uint8_t Priority)
   LATBbits.LATB10 = 1;
   LATBbits.LATB11 = 0;
   
-  InitLED();
   TRISBbits.TRISB15 = 0;
   TRISBbits.TRISB13 = 0;
   TRISBbits.TRISB12 = 0;
+  
+  TRISBbits.TRISB15 = 0;
+  
+  TRISBbits.TRISB5 = 1; //Dir change
+  
+  
   InitPWM();
+  
   SetDuty(0);
   EncoderIC_Init();
+  InitControlISR();
   
   ES_Timer_InitTimer(ENCODER_TIMER, ENCODER_CHECK_MS);
   ES_Timer_InitTimer(PRINT_TIMER, 100);
@@ -169,27 +192,46 @@ ES_Event_t RunMotorService(ES_Event_t ThisEvent)
       case ES_AD:
           adc = ThisEvent.EventParam;
           //DB_printf("%d\n",adc);
-          duty = ((uint32_t)adc * 100UL) / 1023UL;
-          SetDuty((uint8_t)duty);
+          //duty = ((uint32_t)adc * 100UL) / 1023UL;
+          speed_cmd_rpm = (uint16_t)(((uint32_t)adc * (uint32_t)MAX_RPM_CMD)/1023UL);
+          
+          //SetDuty((uint8_t)duty);
+          
+          /*
+          if (PORTBbits.RB5 == 1){
+              LATBbits.LATB11 = 1;
+              SetDuty(100 - (uint8_t)duty);
+          }else if (PORTBbits.RB5 == 0){
+              LATBbits.LATB11 = 0;
+              SetDuty((uint8_t)duty);
+          }
+          */
+          
           break;
           
       case ES_TIMEOUT:
           if (ThisEvent.EventParam == ENCODER_TIMER){
               ES_Timer_InitTimer(ENCODER_TIMER, ENCODER_CHECK_MS);
               
-              period = EncoderIC_GetPeriodTicks32(&newEdge);
+              //period = EncoderIC_GetPeriodTicks32(&newEdge);
               //DB_printf("period = %d, newEdge = %d, RB9 output = %d\n",period,newEdge, PORTBbits.RB9);
-              if(newEdge) MapPeriodToBars(period);
+              //DB_printf("RB5 output = %d\n",PORTBbits.RB5);
+              if (PORTBbits.RB5 == 1){
+                  LATBbits.LATB11 = 1;
+              }else if (PORTBbits.RB5 == 0){
+                  LATBbits.LATB11 = 0;
+              }
+              
               
               break;
               
           }else if (ThisEvent.EventParam == PRINT_TIMER){
               ES_Timer_InitTimer(PRINT_TIMER, 100);
               LATBbits.LATB13 = 1;
-              uint16_t RPM = (60 * PBCLK_HZ)/(T3_PRESCALE * period * PPR);
+              //uint16_t RPM = (60 * PBCLK_HZ)/(T3_PRESCALE * period * PPR);
               LATBbits.LATB13 = 0;
               LATBbits.LATB12 = 1;
-              DB_printf("Duty_cycle is %d, RPM is %d\n", duty, RPM);
+              DB_printf("Duty_cycle is %d, CMD_RPM is %d, Real_RPM is %d\n", duty_out, speed_cmd_rpm,speed_meas_rpm);
               LATBbits.LATB12 = 0;
           }
           
@@ -205,151 +247,6 @@ ES_Event_t RunMotorService(ES_Event_t ThisEvent)
  private functions
  ***************************************************************************/
 
-static void InitPWM(void){
-    T2CONbits.ON = 0;
-    T2CONbits.TCS = 0;
-    
-    //T2CON = 0;
-    TMR2 = 0;
-    
-    pr2_value = (uint16_t)((PBCLK_HZ/(T2_PRESCALE * PWM_FREQ_HZ)) - 1);
-    PR2 = pr2_value;
-    T2CONbits.TCKPS = 0b010;  //pre-scale = 4 
-    T2CONbits.ON = 1;
-    
-    OC2CONbits.ON = 0;
-    OC2R = 0;
-    OC2RS = 0;
-    OC2CONbits.OCTSEL = 0;
-    OC2CONbits.OCM = 0b110;
-    RPB8Rbits.RPB8R = 0b0101;
-    OC2CONbits.ON = 1;
-    
-}
-
-static void SetDuty(uint8_t duty_precent){
-    if (duty_precent > 100) duty_precent = 100;
-    
-    duty_counts = (uint16_t)(((uint32_t)duty_precent * (uint32_t)(pr2_value + 1U))/100UL);
-    
-    OC2RS = duty_counts;
-       
-}
-
-static void InitLED(void){
-    TRISAbits.TRISA0 = 0;
-    TRISAbits.TRISA1 = 0;
-    TRISAbits.TRISA2 = 0;
-    TRISAbits.TRISA3 = 0;
-    TRISAbits.TRISA4 = 0;
-    TRISBbits.TRISB2 = 0;
-    TRISBbits.TRISB4 = 0;
-    TRISBbits.TRISB5 = 0;
-    
-    LATAbits.LATA0 = 0;
-    LATAbits.LATA1 = 0;
-    LATAbits.LATA2 = 0;
-    LATAbits.LATA3 = 0;
-    LATAbits.LATA4 = 0;
-    LATBbits.LATB2 = 0;
-    LATBbits.LATB4 = 0;
-    LATBbits.LATB5 = 0;
-}
-
-static void LED_CLR(void){
-    LATAbits.LATA0 = 0;
-    LATAbits.LATA1 = 0;
-    LATAbits.LATA2 = 0;
-    LATAbits.LATA3 = 0;
-    LATAbits.LATA4 = 0;
-    LATBbits.LATB2 = 0;
-    LATBbits.LATB4 = 0;
-    LATBbits.LATB5 = 0;
-}
-
-static void MapPeriodToBars(uint32_t period_LED){
-    //DB_printf("%d\n",period_LED);
-    LATBbits.LATB15 = 1;
-    if (period_LED <= 2200){
-        LATAbits.LATA0 = 1;
-        LATAbits.LATA1 = 0;
-        LATAbits.LATA2 = 0;
-        LATAbits.LATA3 = 0;
-        LATAbits.LATA4 = 0;
-        LATBbits.LATB2 = 0;
-        LATBbits.LATB4 = 0;
-        LATBbits.LATB5 = 0;
-        //DB_printf("1\n");
-    }else if(2200 < period_LED && period_LED <= 2350){
-        LATAbits.LATA0 = 1;
-        LATAbits.LATA1 = 1;
-        LATAbits.LATA2 = 0;
-        LATAbits.LATA3 = 0;
-        LATAbits.LATA4 = 0;
-        LATBbits.LATB2 = 0;
-        LATBbits.LATB4 = 0;
-        LATBbits.LATB5 = 0;
-        //DB_printf("2\n");
-    }else if(2350 < period_LED && period_LED <= 2600){
-        LATAbits.LATA0 = 1;
-        LATAbits.LATA1 = 1;
-        LATAbits.LATA2 = 1;
-        LATAbits.LATA3 = 0;
-        LATAbits.LATA4 = 0;
-        LATBbits.LATB2 = 0;
-        LATBbits.LATB4 = 0;
-        LATBbits.LATB5 = 0;
-        //DB_printf("3\n");
-    }else if(2600 < period_LED && period_LED <= 2950){
-        LATAbits.LATA0 = 1;
-        LATAbits.LATA1 = 1;
-        LATAbits.LATA2 = 1;
-        LATAbits.LATA3 = 1;
-        LATAbits.LATA4 = 0;
-        LATBbits.LATB2 = 0;
-        LATBbits.LATB4 = 0;
-        LATBbits.LATB5 = 0;
-        //DB_printf("4\n");
-    }else if(2950 < period_LED && period_LED <= 3300){
-        LATAbits.LATA0 = 1;
-        LATAbits.LATA1 = 1;
-        LATAbits.LATA2 = 1;
-        LATAbits.LATA3 = 1;
-        LATAbits.LATA4 = 1;
-        LATBbits.LATB2 = 0;
-        LATBbits.LATB4 = 0;
-        LATBbits.LATB5 = 0;
-    }else if(3300 < period_LED && period_LED <= 3650){
-
-        LATAbits.LATA0 = 1;
-        LATAbits.LATA1 = 1;
-        LATAbits.LATA2 = 1;
-        LATAbits.LATA3 = 1;
-        LATAbits.LATA4 = 1;
-        LATBbits.LATB2 = 1;
-        LATBbits.LATB4 = 0;
-        LATBbits.LATB5 = 0;
-    }else if(3650 < period_LED && period_LED <= 4000){
-        LATAbits.LATA0 = 1;
-        LATAbits.LATA1 = 1;
-        LATAbits.LATA2 = 1;
-        LATAbits.LATA3 = 1;
-        LATAbits.LATA4 = 1;
-        LATBbits.LATB2 = 1;
-        LATBbits.LATB4 = 1;
-        LATBbits.LATB5 = 0;
-    }else if(4000 < period_LED){
-        LATAbits.LATA0 = 1;
-        LATAbits.LATA1 = 1;
-        LATAbits.LATA2 = 1;
-        LATAbits.LATA3 = 1;
-        LATAbits.LATA4 = 1;
-        LATBbits.LATB2 = 1;
-        LATBbits.LATB4 = 1;
-        LATBbits.LATB5 = 1;
-    }
-    LATBbits.LATB15 = 0;
-    
 }
 /*------------------------------- Footnotes -------------------------------*/
 /*------------------------------ End of file ------------------------------*/
