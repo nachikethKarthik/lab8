@@ -14,6 +14,7 @@
  History
  When           Who     What/Why
  -------------- ---     --------
+ 02032026       karthi24   began adding test scripts for testing the tape sensing event checker
  01/15/12 11:12 jec      revisions for Gen2 framework
  11/07/11 11:26 jec      made the queue static
  10/30/11 17:59 jec      fixed references to CurrentEvent in RunTemplateSM()
@@ -49,7 +50,8 @@
 #define CG_SDI_IN_PIN   SPI_RPB5
 
 
-uint8_t CG_command = 0x00;
+
+
 /*---------------------------- Module Functions ---------------------------*/
 /* prototypes for private functions for this machine.They should be functions
    relevant to the behavior of this state machine
@@ -66,7 +68,8 @@ static TemplateState_t CurrentState;
 
 // with the introduction of Gen2, we need a module level Priority var as well
 static uint8_t MyPriority;
-
+uint8_t CG_command = 0x00;
+static uint32_t TapeADCResults[1];
 /*------------------------------ Module Code ------------------------------*/
 /****************************************************************************
  Function
@@ -136,7 +139,7 @@ bool PostLab8Service(ES_Event_t ThisEvent)
 
 /****************************************************************************
  Function
-    RunTemplateFSM
+    RunLab8Service
 
  Parameters
    ES_Event_t : the event to process
@@ -196,8 +199,10 @@ ES_Event_t RunLab8Service(ES_Event_t ThisEvent)
                 // 1. Get command via SPI
                 SPIOperate_SPI1_Send8Wait(CG_QUERY_BYTE);
                 CG_command = (uint8_t)SPI1BUF;
-                DB_printf("CG Command = %u\r\n", CG_command);
+//                DB_printf("CG Command = %u\r\n", CG_command);
                 
+                ADC_MultiRead(TapeADCResults);
+                DB_printf("Tape Sensor ADC: %d\n", TapeADCResults[0]);
                 switch(CG_command){
                     // 2. Respond to command
                     case 0x00: 
@@ -244,8 +249,6 @@ ES_Event_t RunLab8Service(ES_Event_t ThisEvent)
                         break;
                 }
             
-              
-              
               ES_Timer_InitTimer(QUERY_TIMER, 100);
             }
             break;
