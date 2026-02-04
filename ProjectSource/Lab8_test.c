@@ -82,6 +82,10 @@ static TemplateState_t CurrentState;
 // with the introduction of Gen2, we need a module level Priority var as well
 static uint8_t MyPriority;
 uint8_t CG_command = 0x00;
+
+uint8_t cur_command = 0x01;
+uint8_t new_command = 0x01;
+
 //static uint32_t TapeADCResults[1]; // Used for testing tape sensor
 /*------------------------------ Module Code ------------------------------*/
 
@@ -105,7 +109,10 @@ uint8_t CG_command = 0x00;
 ****************************************************************************/
 bool InitLab8Service(uint8_t Priority)
 {
-  ES_Event_t ThisEvent;
+    DB_printf("Program start!\n");
+    
+    
+    ES_Event_t ThisEvent;
 
   MyPriority = Priority;
   // put us into the Initial PseudoState
@@ -189,69 +196,123 @@ ES_Event_t RunLab8Service(ES_Event_t ThisEvent)
             {
                 SPIOperate_SPI1_Send8Wait(CG_QUERY_BYTE);
                 CG_command = (uint8_t)SPI1BUF;
-
+                //DB_printf("%u\n",CG_command);
+                new_command = CG_command;
+                //current_command = CG_command
                 switch (CG_command)
                 {
                     case 0x00:
+                        //DB_printf("Stop!\n");
+                    
                         StopMotors();
                         break;
 
                     case 0x02: // CW 90
-                        RotateCW(100);
-                        ES_Timer_InitTimer(ROTATION_TIMER, ROTATION_90_DURATION);
-                        CurrentState = RotatingClockwise;
+                        if(new_command != cur_command){
+                            DB_printf("CW 90\n");
+                            RotateCW(100);
+                            ES_Timer_InitTimer(ROTATION_TIMER, ROTATION_90_DURATION);
+                            CurrentState = RotatingClockwise; 
+                            cur_command = new_command;
+                        }
+                        
+                        //RotateCW(100);
+                        //ES_Timer_InitTimer(ROTATION_TIMER, ROTATION_90_DURATION);
+                        //CurrentState = RotatingClockwise;
                         break;
 
                     case 0x03: // CW 45
-                        RotateCW(100);
-                        ES_Timer_InitTimer(ROTATION_TIMER, ROTATION_45_DURATION);
-                        CurrentState = RotatingClockwise;
+                        if(new_command != cur_command){
+                            DB_printf("CW 45\n");
+                            RotateCW(100);
+                            ES_Timer_InitTimer(ROTATION_TIMER, ROTATION_45_DURATION);
+                            CurrentState = RotatingClockwise;
+                            cur_command = new_command;
+                        }
                         break;
 
                     case 0x04: // CCW 90
-                        RotateCCW(100);
-                        ES_Timer_InitTimer(ROTATION_TIMER, ROTATION_90_DURATION);
-                        CurrentState = RotatingCounterClockwise;
+                        if(new_command != cur_command){
+                            DB_printf("CCW 90\n");
+                            RotateCCW(100);
+                            ES_Timer_InitTimer(ROTATION_TIMER, ROTATION_90_DURATION);
+                            CurrentState = RotatingCounterClockwise;
+                            cur_command = new_command;
+                        }
                         break;
 
                     case 0x05: // CCW 45
-                        RotateCCW(100);
-                        ES_Timer_InitTimer(ROTATION_TIMER, ROTATION_45_DURATION);
-                        CurrentState = RotatingCounterClockwise;
+                        if(new_command != cur_command){
+                            DB_printf("CCW 45\n");
+                            RotateCCW(100);
+                            ES_Timer_InitTimer(ROTATION_TIMER, ROTATION_45_DURATION);
+                            CurrentState = RotatingCounterClockwise;
+                            cur_command = new_command;
+                        }
                         break;
 
                     case 0x08: // forward half
-                        M1Forward(50);
-                        M2Forward(50);
-                        ES_Timer_InitTimer(FORWARD_TIMER, FORWARD_DURATION);
-                        CurrentState = DrivingForward;
+                        if(new_command != cur_command){
+                            DB_printf("Forward Half\n");
+                            M1Forward(50);
+                            M2Forward(50);
+                            ES_Timer_InitTimer(FORWARD_TIMER, FORWARD_DURATION);
+                            CurrentState = DrivingForward;
+                            cur_command = new_command;
+                        }
                         break;
 
                     case 0x09: // forward full
-                        M1Forward(100);
-                        M2Forward(100);
-                        ES_Timer_InitTimer(FORWARD_TIMER, FORWARD_DURATION);
-                        CurrentState = DrivingForward;
+                        if(new_command != cur_command){
+                            DB_printf("Forward Full\n");
+                            M1Forward(100);
+                            M2Forward(100);
+                            ES_Timer_InitTimer(FORWARD_TIMER, FORWARD_DURATION);
+                            CurrentState = DrivingForward;
+                            cur_command = new_command;
+                        }
                         break;
 
                     case 0x10: // reverse half
-                        M1Backward(50);
-                        M2Backward(50);
-                        ES_Timer_InitTimer(BACKWARD_TIMER, BACKWARD_DURATION);
-                        CurrentState = DrivingBackward;
+                        if(new_command != cur_command){
+                            DB_printf("Reverse Half\n");
+                            M1Backward(50);
+                            M2Backward(50);
+                            ES_Timer_InitTimer(BACKWARD_TIMER, BACKWARD_DURATION);
+                            CurrentState = DrivingBackward;
+                            cur_command = new_command;
+                        }
                         break;
 
                     case 0x11: // reverse full
-                        M1Backward(100);
-                        M2Backward(100);
-                        ES_Timer_InitTimer(BACKWARD_TIMER, BACKWARD_DURATION);
-                        CurrentState = DrivingBackward;
+                        if(new_command != cur_command){
+                            DB_printf("Reverse Full\n");
+                            M1Backward(100);
+                            M2Backward(100);
+                            ES_Timer_InitTimer(BACKWARD_TIMER, BACKWARD_DURATION);
+                            CurrentState = DrivingBackward;
+                            cur_command = new_command;
+                        }
                         break;
-
+                        
+                    case 0x20:
+                        if(new_command != cur_command){
+                            DB_printf("Looking for Beacon\n");
+                            RotateCW(100);
+                            //ES_Timer_InitTimer(ROTATION_TIMER, ROTATION_45_DURATION);
+                            CurrentState = RotatingClockwise;
+                            cur_command = new_command;
+                        }
+                        break;
+                      
                     case 0x40: // forward until tape
-                        M1Forward(100);
-                        M2Forward(100);
-                        CurrentState = DrivingForward;
+                        if(new_command != cur_command){
+                            DB_printf("Forward until tape\n");
+                            M1Forward(100);
+                            M2Forward(100);
+                            CurrentState = DrivingForward;
+                            cur_command = new_command;
+                        }
                         break;
 
                     default:
@@ -269,11 +330,13 @@ ES_Event_t RunLab8Service(ES_Event_t ThisEvent)
             {
                 StopMotors();
                 CurrentState = Waiting;
+                ES_Timer_InitTimer(QUERY_TIMER, 100);
             }
             else if (ThisEvent.EventType == ES_TIMEOUT && ThisEvent.EventParam == FORWARD_TIMER)
             {
                 StopMotors();
                 CurrentState = Waiting;
+                ES_Timer_InitTimer(QUERY_TIMER, 100);
             }
         }
         break;
@@ -284,6 +347,7 @@ ES_Event_t RunLab8Service(ES_Event_t ThisEvent)
             {
                 StopMotors();
                 CurrentState = Waiting;
+                ES_Timer_InitTimer(QUERY_TIMER, 100);
             }
         }
         break;
@@ -292,8 +356,15 @@ ES_Event_t RunLab8Service(ES_Event_t ThisEvent)
         {
             if (ThisEvent.EventType == ES_TIMEOUT && ThisEvent.EventParam == ROTATION_TIMER)
             {
+                //DB_printf("RCW end\n");
                 StopMotors();
                 CurrentState = Waiting;
+                ES_Timer_InitTimer(QUERY_TIMER, 100);
+            }
+            if (cur_command == 0x20 && ThisEvent.EventType == ES_BEACON_DETECTED){
+                StopMotors();
+                CurrentState = Waiting;
+                ES_Timer_InitTimer(QUERY_TIMER, 100);
             }
         }
         break;
@@ -304,6 +375,7 @@ ES_Event_t RunLab8Service(ES_Event_t ThisEvent)
             {
                 StopMotors();
                 CurrentState = Waiting;
+                ES_Timer_InitTimer(QUERY_TIMER, 100);
             }
         }
         break;
@@ -479,5 +551,5 @@ void RotateCW(uint16_t duty) {
 
 void RotateCCW(uint16_t duty) {
     M1Backward((duty / 100) * PWM_PERIOD);       // left wheel
-    M2Backward((duty / 100) * PWM_PERIOD);       // right wheel
+    M2Forward((duty / 100) * PWM_PERIOD);       // right wheel
 }
