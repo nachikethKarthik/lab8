@@ -120,7 +120,8 @@ typedef enum
   ES_LOCK,
   ES_UNLOCK,
   ES_AD,
-  ES_TAPE_DETECTED /* signals tape/line detected by sensor */
+  ES_TAPE_DETECTED, /* signals tape/line detected by sensor */
+  ES_BEACON_FOUND
 }ES_EventType_t;
 
 /****************************************************************************/
@@ -190,4 +191,8 @@ typedef enum
 
 #define SERVICE0_TIMER 15
 #define QUERY_TIMER 0
+#define ROTATION_TIMER 0
+#define FORWARD_TIMER 0
+#define BACKWARD_TIMER 0
+
 #endif /* ES_CONFIGURE_H */
