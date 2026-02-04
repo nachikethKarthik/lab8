@@ -121,7 +121,8 @@ typedef enum
   ES_UNLOCK,
   ES_AD,
   ES_TAPE_DETECTED, /* signals tape/line detected by sensor */
-  ES_BEACON_FOUND
+  ES_BEACON_FOUND,
+  ES_BEACON_DETECTED
 }ES_EventType_t;
 
 /****************************************************************************/
@@ -166,9 +167,9 @@ typedef enum
 // priority in servicing them
 #define TIMER_UNUSED ((pPostFunc)0)
 #define TIMER0_RESP_FUNC PostLab8Service
-#define TIMER1_RESP_FUNC TIMER_UNUSED
-#define TIMER2_RESP_FUNC TIMER_UNUSED
-#define TIMER3_RESP_FUNC TIMER_UNUSED
+#define TIMER1_RESP_FUNC PostLab8Service
+#define TIMER2_RESP_FUNC PostLab8Service
+#define TIMER3_RESP_FUNC PostLab8Service
 #define TIMER4_RESP_FUNC TIMER_UNUSED
 #define TIMER5_RESP_FUNC TIMER_UNUSED
 #define TIMER6_RESP_FUNC TIMER_UNUSED
@@ -191,8 +192,8 @@ typedef enum
 
 #define SERVICE0_TIMER 15
 #define QUERY_TIMER 0
-#define ROTATION_TIMER 0
-#define FORWARD_TIMER 0
-#define BACKWARD_TIMER 0
+#define ROTATION_TIMER 1
+#define FORWARD_TIMER 2
+#define BACKWARD_TIMER 3
 
 #endif /* ES_CONFIGURE_H */
