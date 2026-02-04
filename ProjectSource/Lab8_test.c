@@ -65,6 +65,9 @@ bool InitEventCheckerHardware(void);
 // everybody needs a state variable, you may need others as well.
 // type of state variable should match htat of enum in header file
 static TemplateState_t CurrentState;
+static TemplateState_t Turning;
+static TemplateState_t AligningToBeacon;
+// ADD ALL THE STATES FROM STATE DIAGRAM
 
 // with the introduction of Gen2, we need a module level Priority var as well
 static uint8_t MyPriority;
@@ -190,7 +193,20 @@ ES_Event_t RunLab8Service(ES_Event_t ThisEvent)
     {
       switch (ThisEvent.EventType)
       {
-
+        case ES_BEACON_FOUND:
+        {
+            
+        }
+              
+        case ES_TAPE_DETECTED:
+        {
+            // Stop motors
+            OC3RS = 0;
+            OC4RS = 0;
+            LATBbits.LATB8 = 0;     // Set enable pin to 0
+            LATBbits.LATB11 = 0;    // Set enable pin to 0
+        }
+              
         case ES_TIMEOUT:
         {
             if (ThisEvent.EventParam == QUERY_TIMER)
@@ -204,47 +220,118 @@ ES_Event_t RunLab8Service(ES_Event_t ThisEvent)
                 switch(CG_command){
                     case 0x00: 
                         // Stop motors
+                        OC3RS = 0;
+                        OC4RS = 0;
+                        LATBbits.LATB8 = 0;     // Set enable pin to 0
+                        LATBbits.LATB11 = 0;    // Set enable pin to 0
                         break;
 
                     case 0x02: 
                         // Rotate clockwise by 90
+                        OC3RS = PWM_PERIOD;
+                        OC4RS = PWM_PERIOD - PWM_PERIOD;        // backward
+                        LATBbits.LATB10 = 0;        // Direction control, forward
+                        LATBbits.LATB12 = 1;        // Direction control, backward
+                        LATBbits.LATB8 = 1;        // Enable pin
+                        LATBbits.LATB11 = 1;        // Enable pin
+                        // need some timer here
                         break;
 
                     case 0x03: 
                         // Rotate clockwise by 45
+                        OC3RS = PWM_PERIOD;
+                        OC4RS = PWM_PERIOD - PWM_PERIOD;        // backward
+                        LATBbits.LATB10 = 0;        // Direction control, forward
+                        LATBbits.LATB12 = 1;        // Direction control, backward
+                        LATBbits.LATB8 = 1;        // Enable pin
+                        LATBbits.LATB11 = 1;        // Enable pin
+                        // need some timer here
                         break;
 
                     case 0x04: 
                         // Rotate counter-clockwise by 90
+                        OC3RS = PWM_PERIOD - PWM_PERIOD;
+                        OC4RS = PWM_PERIOD;        // backward
+                        LATBbits.LATB10 = 1;        // Direction control, backward
+                        LATBbits.LATB12 = 0;        // Direction control, forward. RIGHT MOTOR
+                        LATBbits.LATB8 = 1;        // Enable pin
+                        LATBbits.LATB11 = 1;        // Enable pin
+                        // need some timer here
                         break;
 
                     case 0x05: 
                         // Rotate counter-clockwise by 45
+                        OC3RS = PWM_PERIOD - PWM_PERIOD;
+                        OC4RS = PWM_PERIOD;        // backward
+                        LATBbits.LATB10 = 1;        // Direction control, backward
+                        LATBbits.LATB12 = 0;        // Direction control, forward. RIGHT MOTOR
+                        LATBbits.LATB8 = 1;        // Enable pin
+                        LATBbits.LATB11 = 1;        // Enable pin
+                        // need some timer here
                         break;
 
                     case 0x08:
                         // Forward half
+                        OC3RS = PWM_PERIOD / 2;
+                        OC4RS = PWM_PERIOD / 2;
+                        LATBbits.LATB10 = 0;        // Direction control
+                        LATBbits.LATB12 = 0;        // Direction control
+                        LATBbits.LATB8 = 1;        // Enable pin
+                        LATBbits.LATB11 = 1;        // Enable pin
                         break;
 
                     case 0x09:
                         // Forward full
+                        OC3RS = PWM_PERIOD;
+                        OC4RS = PWM_PERIOD;
+                        LATBbits.LATB10 = 0;        // Direction control
+                        LATBbits.LATB12 = 0;        // Direction control
+                        LATBbits.LATB8 = 1;        // Enable pin
+                        LATBbits.LATB11 = 1;        // Enable pin
                         break;
 
                     case 0x10:
                         // Reverse half
+                        OC3RS = PWM_PERIOD - (0.5 * PWM_PERIOD);
+                        OC4RS = PWM_PERIOD - (0.5 * PWM_PERIOD);
+                        LATBbits.LATB10 = 1;        // Direction control, backward
+                        LATBbits.LATB12 = 1;        // Direction control
+                        LATBbits.LATB8 = 1;        // Enable pin
+                        LATBbits.LATB11 = 1;        // Enable pin
                         break;
 
                     case 0x11:
                         // Reverse full
+                        OC3RS = PWM_PERIOD - PWM_PERIOD;
+                        OC4RS = PWM_PERIOD - PWM_PERIOD;
+                        LATBbits.LATB10 = 1;        // Direction control, backward
+                        LATBbits.LATB12 = 1;        // Direction control
+                        LATBbits.LATB8 = 1;        // Enable pin
+                        LATBbits.LATB11 = 1;        // Enable pin
+                        
                         break;
 
                     case 0x20:
                         // Align with beacon
+                        OC3RS = PWM_PERIOD;
+                        OC4RS = PWM_PERIOD - PWM_PERIOD;        // backward
+                        LATBbits.LATB10 = 0;        // Direction control, forward
+                        LATBbits.LATB12 = 1;        // Direction control, backward
+                        LATBbits.LATB8 = 1;        // Enable pin
+                        LATBbits.LATB11 = 1;        // Enable pin
+                        // STATE TURNING
                         break;
 
                     case 0x40:
                         // Drive forward until tape detected
+                        OC3RS = PWM_PERIOD;
+                        OC4RS = PWM_PERIOD;
+                        LATBbits.LATB10 = 0;        // Direction control
+                        LATBbits.LATB12 = 0;        // Direction control
+                        LATBbits.LATB8 = 1;        // Enable pin
+                        LATBbits.LATB11 = 1;        // Enable pin
                         break;
+                        
                 }
 
               
