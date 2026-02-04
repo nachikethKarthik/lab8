@@ -106,149 +106,6 @@
 #endif
 
 /****************************************************************************/
-// These are the definitions for Service 5
-#if NUM_SERVICES > 5
-// the header file with the public function prototypes
-#define SERV_5_HEADER "TestHarnessService5.h"
-// the name of the Init function
-#define SERV_5_INIT InitTestHarnessService5
-// the name of the run function
-#define SERV_5_RUN RunTestHarnessService5
-// How big should this services Queue be?
-#define SERV_5_QUEUE_SIZE 3
-#endif
-
-/****************************************************************************/
-// These are the definitions for Service 6
-#if NUM_SERVICES > 6
-// the header file with the public function prototypes
-#define SERV_6_HEADER "TestHarnessService6.h"
-// the name of the Init function
-#define SERV_6_INIT InitTestHarnessService6
-// the name of the run function
-#define SERV_6_RUN RunTestHarnessService6
-// How big should this services Queue be?
-#define SERV_6_QUEUE_SIZE 3
-#endif
-
-/****************************************************************************/
-// These are the definitions for Service 7
-#if NUM_SERVICES > 7
-// the header file with the public function prototypes
-#define SERV_7_HEADER "TestHarnessService7.h"
-// the name of the Init function
-#define SERV_7_INIT InitTestHarnessService7
-// the name of the run function
-#define SERV_7_RUN RunTestHarnessService7
-// How big should this services Queue be?
-#define SERV_7_QUEUE_SIZE 3
-#endif
-
-/****************************************************************************/
-// These are the definitions for Service 8
-#if NUM_SERVICES > 8
-// the header file with the public function prototypes
-#define SERV_8_HEADER "TestHarnessService8.h"
-// the name of the Init function
-#define SERV_8_INIT InitTestHarnessService8
-// the name of the run function
-#define SERV_8_RUN RunTestHarnessService8
-// How big should this services Queue be?
-#define SERV_8_QUEUE_SIZE 3
-#endif
-
-/****************************************************************************/
-// These are the definitions for Service 9
-#if NUM_SERVICES > 9
-// the header file with the public function prototypes
-#define SERV_9_HEADER "TestHarnessService9.h"
-// the name of the Init function
-#define SERV_9_INIT InitTestHarnessService9
-// the name of the run function
-#define SERV_9_RUN RunTestHarnessService9
-// How big should this services Queue be?
-#define SERV_9_QUEUE_SIZE 3
-#endif
-
-/****************************************************************************/
-// These are the definitions for Service 10
-#if NUM_SERVICES > 10
-// the header file with the public function prototypes
-#define SERV_10_HEADER "TestHarnessService10.h"
-// the name of the Init function
-#define SERV_10_INIT InitTestHarnessService10
-// the name of the run function
-#define SERV_10_RUN RunTestHarnessService10
-// How big should this services Queue be?
-#define SERV_10_QUEUE_SIZE 3
-#endif
-
-/****************************************************************************/
-// These are the definitions for Service 11
-#if NUM_SERVICES > 11
-// the header file with the public function prototypes
-#define SERV_11_HEADER "TestHarnessService11.h"
-// the name of the Init function
-#define SERV_11_INIT InitTestHarnessService11
-// the name of the run function
-#define SERV_11_RUN RunTestHarnessService11
-// How big should this services Queue be?
-#define SERV_11_QUEUE_SIZE 3
-#endif
-
-/****************************************************************************/
-// These are the definitions for Service 12
-#if NUM_SERVICES > 12
-// the header file with the public function prototypes
-#define SERV_12_HEADER "TestHarnessService12.h"
-// the name of the Init function
-#define SERV_12_INIT InitTestHarnessService12
-// the name of the run function
-#define SERV_12_RUN RunTestHarnessService12
-// How big should this services Queue be?
-#define SERV_12_QUEUE_SIZE 3
-#endif
-
-/****************************************************************************/
-// These are the definitions for Service 13
-#if NUM_SERVICES > 13
-// the header file with the public function prototypes
-#define SERV_13_HEADER "TestHarnessService13.h"
-// the name of the Init function
-#define SERV_13_INIT InitTestHarnessService13
-// the name of the run function
-#define SERV_13_RUN RunTestHarnessService13
-// How big should this services Queue be?
-#define SERV_13_QUEUE_SIZE 3
-#endif
-
-/****************************************************************************/
-// These are the definitions for Service 14
-#if NUM_SERVICES > 14
-// the header file with the public function prototypes
-#define SERV_14_HEADER "TestHarnessService14.h"
-// the name of the Init function
-#define SERV_14_INIT InitTestHarnessService14
-// the name of the run function
-#define SERV_14_RUN RunTestHarnessService14
-// How big should this services Queue be?
-#define SERV_14_QUEUE_SIZE 3
-#endif
-
-/****************************************************************************/
-// These are the definitions for Service 15
-#if NUM_SERVICES > 15
-// the header file with the public function prototypes
-#define SERV_15_HEADER "TestHarnessService15.h"
-// the name of the Init function
-#define SERV_15_INIT InitTestHarnessService15
-// the name of the run function
-#define SERV_15_RUN RunTestHarnessService15
-// How big should this services Queue be?
-#define SERV_15_QUEUE_SIZE 3
-#endif
-
-/****************************************************************************/
 // Name/define the events of interest
 // Universal events occupy the lowest entries, followed by user-defined events
 typedef enum
@@ -262,7 +119,8 @@ typedef enum
   ES_NEW_KEY,               /* signals a new key received from terminal */
   ES_LOCK,
   ES_UNLOCK,
-  ES_AD
+  ES_AD,
+  ES_TAPE_DETECTED /* signals tape/line detected by sensor */
 }ES_EventType_t;
 
 /****************************************************************************/
@@ -297,7 +155,7 @@ typedef enum
 
 /****************************************************************************/
 // This is the list of event checking functions
-#define EVENT_CHECK_LIST Check4Keystroke
+#define EVENT_CHECK_LIST Check4Keystroke,Check4Tape
 
 /****************************************************************************/
 // These are the definitions for the post functions to be executed when the

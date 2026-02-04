@@ -26,6 +26,7 @@
 #include "../ProjectHeaders/Lab8_test.h"
 #include "../ProjectHeaders/PIC32_SPI_HAL.h"
 
+
 #include <xc.h>
 
 #include "ES_Configure.h"
@@ -57,6 +58,7 @@ uint8_t CG_command = 0x00;
 */
 static bool CG_SPI_Init(void);
 static bool Motor_PWM_Init(void);
+bool InitEventCheckerHardware(void);
 
 
 /*---------------------------- Module Variables ---------------------------*/
@@ -98,6 +100,7 @@ bool InitLab8Service(uint8_t Priority)
   
   CG_SPI_Init();
   Motor_PWM_Init();
+  InitEventCheckerHardware();
   
   ES_Timer_InitTimer(QUERY_TIMER, 100);
 
@@ -187,13 +190,7 @@ ES_Event_t RunLab8Service(ES_Event_t ThisEvent)
     {
       switch (ThisEvent.EventType)
       {
-        case ES_LOCK:  //If event is event one
 
-        {   // Execute action function for state one : event one
-          CurrentState = Locked;  //Decide what the next state will be
-        }
-        break;
-        
         case ES_TIMEOUT:
         {
             if (ThisEvent.EventParam == QUERY_TIMER)
@@ -204,8 +201,7 @@ ES_Event_t RunLab8Service(ES_Event_t ThisEvent)
                 DB_printf("CG Command = %u\r\n", CG_command);
               
                 // 2. Respond to command
-                switch(CG_command)
-                {
+                switch(CG_command){
                     case 0x00: 
                         // Stop motors
                         break;
@@ -250,17 +246,14 @@ ES_Event_t RunLab8Service(ES_Event_t ThisEvent)
                         // Drive forward until tape detected
                         break;
                 }
-              
+
               
               ES_Timer_InitTimer(QUERY_TIMER, 100);
             }
             break;
-        }
-
-        // repeat cases as required for relevant events
-        default:
-          ;
-      }  // end switch on CurrentEvent
+        }break;
+ 
+      }break;  // end switch on CurrentEvent
     }
     break;
     // repeat state pattern as required for other states
@@ -385,4 +378,9 @@ static bool Motor_PWM_Init(void)
     
     return true;
 }
+
+
+
+
+
 
