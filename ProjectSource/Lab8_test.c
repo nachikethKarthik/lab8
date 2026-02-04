@@ -37,6 +37,8 @@
 
 /*----------------------------- Module Defines ----------------------------*/
 
+#define PWM_PRESCALE    0b010       // 1:4 prescaler
+#define PWM_PERIOD      1249        // For 4000 Hz PWM
 #define CG_QUERY_BYTE   0xAA
 
 #define SPI_CLK_NS      10000u
@@ -54,7 +56,7 @@ uint8_t CG_command = 0x00;
    relevant to the behavior of this state machine
 */
 static bool CG_SPI_Init(void);
-static bool Motors_Init(void);
+static bool Motor_PWM_Init(void);
 
 
 /*---------------------------- Module Variables ---------------------------*/
@@ -202,48 +204,52 @@ ES_Event_t RunLab8Service(ES_Event_t ThisEvent)
                 DB_printf("CG Command = %u\r\n", CG_command);
               
                 // 2. Respond to command
-                case 0x00: 
-                    // Stop motors
-                    break;
-                    
-                case 0x02: 
-                    // Rotate clockwise by 90
-                    break;
-                    
-                case 0x03: 
-                    // Rotate clockwise by 45
-                    break;
-                    
-                case 0x04: 
-                    // Rotate counter-clockwise by 90
-                    break;
-                    
-                case 0x05: 
-                    // Rotate counter-clockwise by 45
-                    break;
-                    
-                case 0x08:
-                    // Forward half
-                    break;
+                switch(CG_command)
+                {
+                    case 0x00: 
+                        // Stop motors
+                        break;
 
-                case 0x09:
-                    // Forward full
-                    break;
-                    
-                case 0x10:
-                    // Reverse half
-                    break;
-                        
-                case 0x11:
-                    // Reverse full
-                    break;
-                    
-                case 0x20:
-                    // Align with beacon
-                    
-                case 0x40:
-                    // Drive forward until tape detected
-            
+                    case 0x02: 
+                        // Rotate clockwise by 90
+                        break;
+
+                    case 0x03: 
+                        // Rotate clockwise by 45
+                        break;
+
+                    case 0x04: 
+                        // Rotate counter-clockwise by 90
+                        break;
+
+                    case 0x05: 
+                        // Rotate counter-clockwise by 45
+                        break;
+
+                    case 0x08:
+                        // Forward half
+                        break;
+
+                    case 0x09:
+                        // Forward full
+                        break;
+
+                    case 0x10:
+                        // Reverse half
+                        break;
+
+                    case 0x11:
+                        // Reverse full
+                        break;
+
+                    case 0x20:
+                        // Align with beacon
+                        break;
+
+                    case 0x40:
+                        // Drive forward until tape detected
+                        break;
+                }
               
               
               ES_Timer_InitTimer(QUERY_TIMER, 100);
@@ -319,10 +325,7 @@ static bool CG_SPI_Init(void)
   SPISetup_MapSSOutput(CG_SPI_MODULE, CG_SS_OUT_PIN);
   SPISetup_MapSDOutput(CG_SPI_MODULE, CG_SDO_OUT_PIN);
   SPISetup_MapSDInput(CG_SPI_MODULE, CG_SDI_IN_PIN);
-  // IMPORTANT:
-  // You still must configure SDI and SCK pins elsewhere (PPS + TRIS),
-  // because your HAL's MapSDInput/MapSCK aren't implemented.
-  // Make sure:
+ 
   //  - PIC SDO -> CG SDI
   //  - PIC SDI <- CG SDO
   //  - PIC SCK -> CG SCK
@@ -333,7 +336,8 @@ static bool CG_SPI_Init(void)
   return true;
 }
 
-static bool Motor_PWM_Init(void){
+static bool Motor_PWM_Init(void)
+{
     
     // Motor 1 init. Set all to output
     TRISBbits.TRISB8 = 0;           // Connects to Enable 1,2
@@ -345,12 +349,36 @@ static bool Motor_PWM_Init(void){
     TRISBbits.TRISB12 = 0;          // Connects to 3A
     TRISBbits.TRISB13 = 0;          // Connects to 4A
     
-    // Turn everything to digital
+    // Disable analog, turn everything to digital
     ANSELBbits.ANSB12 = 0;
     ANSELBbits.ANSB13 = 0;
     
-    // Map OC1 to RB8 and OC2 to RB11
+    // Timer2 Setup
+    T2CONbits.ON = 0;           // Disable Timer2
+    T2CONbits.TCS = 0;          // Select internal PBCLK
+    T2CONbits.TCKPS = PWM_PRESCALE;
+    TMR2 = 0;                   // Clear timer register
+    PR2 = PWM_PERIOD;           // Set priod for 4000 hz
+    T2CONbits.ON = 1;           // Enable Timer2
     
+    // Output Compare Module 3 Setup
+    OC3CONbits.ON = 0;          // Disable OC3 during setup
+    OC3CONbits.OCM = 0b110;     // PWM mode, fault pin disabled
+    OC3CONbits.OCTSEL = 0;      // Selects Timer2 as clock source
+    OC3RS = 0;                  // Set initial duty cycle to 0%
+    OC3R = 0;                   // Primary compare register
+    RPB9Rbits.RPB9R = 0b0101;   // Map OC3 (RB9) to 1A
+    OC3CONbits.ON = 1;          // Enable OC3
+    
+    // OC Module 4 Setup
+    OC4CONbits.ON = 0;          // Disable OC4 during setup
+    OC4CONbits.OCM = 0b110;     // PWM mode, fault pin disabled
+    OC4CONbits.OCTSEL = 0;      // Selects Timer2 as clock source
+    OC4RS = 0;                  // Set initial duty cycle to 0%
+    OC4R = 0;                   // Primary compare register
+    RPB13Rbits.RPB13R = 0b0101; // Map OC4 (RB13) to 4A
+    OC4CONbits.ON = 1;          // Enable OC4
+   
     // Set initial state off, enable pins are 0
     LATBbits.LATB8 = 0;
     LATBbits.LATB12 = 0;
