@@ -37,27 +37,25 @@
 
 /*----------------------------- Module Defines ----------------------------*/
 
-#define CG_QUERY_BYTE   (0xAA)
+#define CG_QUERY_BYTE   0xAA
 
-#define SPI_CLK_NS      (10000u)
+#define SPI_CLK_NS      10000u
 
 #define CG_SPI_MODULE   SPI_SPI1
 
 #define CG_SS_OUT_PIN   SPI_RPA0
 #define CG_SDO_OUT_PIN  SPI_RPA1
-#define CG_SDI_IN_PIN      SPI_RPB5
+#define CG_SDI_IN_PIN   SPI_RPB5
 
 
-uint8_t rx = 0x00;
+uint8_t CG_command = 0x00;
 /*---------------------------- Module Functions ---------------------------*/
 /* prototypes for private functions for this machine.They should be functions
    relevant to the behavior of this state machine
 */
 static bool CG_SPI_Init(void);
-static void delay_soft(volatile uint32_t n)
-{
-  while (n--) { __asm__ volatile("nop"); }
-}
+static bool Motors_Init(void);
+
 
 /*---------------------------- Module Variables ---------------------------*/
 // everybody needs a state variable, you may need others as well.
@@ -96,12 +94,9 @@ bool InitLab8Service(uint8_t Priority)
   // post the initial transition event
   ThisEvent.EventType = ES_INIT;
   
-  //CG_SPI_Init();
+  CG_SPI_Init();
+  Motor_PWM_Init();
   
-  if (!CG_SPI_Init()) {
-    DB_printf("SPI init failed\r\n");
-    //while (1) {;}
-  }
   ES_Timer_InitTimer(QUERY_TIMER, 100);
 
   if (ES_PostToService(MyPriority, ThisEvent) == true)
@@ -196,13 +191,65 @@ ES_Event_t RunLab8Service(ES_Event_t ThisEvent)
           CurrentState = Locked;  //Decide what the next state will be
         }
         break;
-          case ES_TIMEOUT:
-              if (ThisEvent.EventParam == QUERY_TIMER)
+        
+        case ES_TIMEOUT:
+        {
+            if (ThisEvent.EventParam == QUERY_TIMER)
+            {
+                // 1. Get command via SPI
                 SPIOperate_SPI1_Send8Wait(CG_QUERY_BYTE);
-                rx = (uint8_t)SPI1BUF;
-                DB_printf("RX = %u\r\n", rx);
-                ES_Timer_InitTimer(QUERY_TIMER, 100);
-                break;
+                CG_command = (uint8_t)SPI1BUF;
+                DB_printf("CG Command = %u\r\n", CG_command);
+              
+                // 2. Respond to command
+                case 0x00: 
+                    // Stop motors
+                    break;
+                    
+                case 0x02: 
+                    // Rotate clockwise by 90
+                    break;
+                    
+                case 0x03: 
+                    // Rotate clockwise by 45
+                    break;
+                    
+                case 0x04: 
+                    // Rotate counter-clockwise by 90
+                    break;
+                    
+                case 0x05: 
+                    // Rotate counter-clockwise by 45
+                    break;
+                    
+                case 0x08:
+                    // Forward half
+                    break;
+
+                case 0x09:
+                    // Forward full
+                    break;
+                    
+                case 0x10:
+                    // Reverse half
+                    break;
+                        
+                case 0x11:
+                    // Reverse full
+                    break;
+                    
+                case 0x20:
+                    // Align with beacon
+                    
+                case 0x40:
+                    // Drive forward until tape detected
+            
+              
+              
+              ES_Timer_InitTimer(QUERY_TIMER, 100);
+            }
+            break;
+        }
 
         // repeat cases as required for relevant events
         default:
@@ -244,36 +291,34 @@ TemplateState_t QueryTemplateFSM(void)
  ***************************************************************************/
 static bool CG_SPI_Init(void)
 {
-  bool ok = true;
-
 //  TRISAbits.TRISA0 = 0;
   //TRISBbits.TRISB11 = 0;
  // LATBbits.LATB10 = 1;
   //LATBbits.LATB11 = 0;
   
-  ok &= SPISetup_BasicConfig(CG_SPI_MODULE);
+  SPISetup_BasicConfig(CG_SPI_MODULE);
 
   // Leader/Master
-  ok &= SPISetup_SetLeader(CG_SPI_MODULE, SPI_SMP_END);
+  SPISetup_SetLeader(CG_SPI_MODULE, SPI_SMP_END);
 
   // Bit time
-  ok &= SPISetup_SetBitTime(CG_SPI_MODULE, SPI_CLK_NS);
+  SPISetup_SetBitTime(CG_SPI_MODULE, SPI_CLK_NS);
 
   // Start with a common SPI mode:
   // CKP=0 idle low, CKE=1 first edge (often corresponds to Mode 0 behavior on PIC32)
-  ok &= SPISetup_SetClockIdleState(CG_SPI_MODULE, SPI_CLK_HI);
-  ok &= SPISetup_SetActiveEdge(CG_SPI_MODULE, SPI_SECOND_EDGE);
+  SPISetup_SetClockIdleState(CG_SPI_MODULE, SPI_CLK_HI);
+  SPISetup_SetActiveEdge(CG_SPI_MODULE, SPI_SECOND_EDGE);
 
   // 8-bit transfers (Command Generator is byte-oriented)
-  ok &= SPISetup_SetXferWidth(CG_SPI_MODULE, SPI_8BIT);
+  SPISetup_SetXferWidth(CG_SPI_MODULE, SPI_8BIT);
 
   // Enhanced buffer optional; start OFF for simplest behavior
-  ok &= SPISetEnhancedBuffer(CG_SPI_MODULE, false);
+  SPISetEnhancedBuffer(CG_SPI_MODULE, false);
 
   // Map SS/SDO (MSSEN will toggle SS each transfer)
-  ok &= SPISetup_MapSSOutput(CG_SPI_MODULE, CG_SS_OUT_PIN);
-  ok &= SPISetup_MapSDOutput(CG_SPI_MODULE, CG_SDO_OUT_PIN);
-  ok &= SPISetup_MapSDInput(CG_SPI_MODULE, CG_SDI_IN_PIN);
+  SPISetup_MapSSOutput(CG_SPI_MODULE, CG_SS_OUT_PIN);
+  SPISetup_MapSDOutput(CG_SPI_MODULE, CG_SDO_OUT_PIN);
+  SPISetup_MapSDInput(CG_SPI_MODULE, CG_SDI_IN_PIN);
   // IMPORTANT:
   // You still must configure SDI and SCK pins elsewhere (PPS + TRIS),
   // because your HAL's MapSDInput/MapSCK aren't implemented.
@@ -283,7 +328,33 @@ static bool CG_SPI_Init(void)
   //  - PIC SCK -> CG SCK
   //  - PIC SS  -> CG SS
 
-  ok &= SPISetup_EnableSPI(CG_SPI_MODULE);
+  SPISetup_EnableSPI(CG_SPI_MODULE);
 
-  return ok;
+  return true;
 }
+
+static bool Motor_PWM_Init(void){
+    
+    // Motor 1 init. Set all to output
+    TRISBbits.TRISB8 = 0;           // Connects to Enable 1,2
+    TRISBbits.TRISB9 = 0;           // Connects to 1A
+    TRISBbits.TRISB10 = 0;          // Connects to 2A
+    
+    // Motor 2 init. Set all to output
+    TRISBbits.TRISB11 = 0;          // Connects to Enable 3,4
+    TRISBbits.TRISB12 = 0;          // Connects to 3A
+    TRISBbits.TRISB13 = 0;          // Connects to 4A
+    
+    // Turn everything to digital
+    ANSELBbits.ANSB12 = 0;
+    ANSELBbits.ANSB13 = 0;
+    
+    // Map OC1 to RB8 and OC2 to RB11
+    
+    // Set initial state off, enable pins are 0
+    LATBbits.LATB8 = 0;
+    LATBbits.LATB12 = 0;
+    
+    return true;
+}
+
