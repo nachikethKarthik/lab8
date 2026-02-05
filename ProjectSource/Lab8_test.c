@@ -50,10 +50,10 @@ next lower level in the hierarchy that are sub-machines to this machine
 #define CG_SDO_OUT_PIN SPI_RPA1
 #define CG_SDI_IN_PIN SPI_RPB5
 
-#define ROTATION_45_DURATION 250
-#define ROTATION_90_DURATION 500
-#define FORWARD_DURATION 500
-#define BACKWARD_DURATION 500
+#define ROTATION_45_DURATION 1500
+#define ROTATION_90_DURATION 3000
+#define FORWARD_DURATION 3000
+#define BACKWARD_DURATION 3000
 
 
 
@@ -187,6 +187,8 @@ ES_Event_t RunLab8Service(ES_Event_t ThisEvent)
                 CurrentState = Waiting;
                 ES_Timer_InitTimer(QUERY_TIMER, 100);
             }
+            
+
         }
         break;
 
@@ -244,7 +246,11 @@ ES_Event_t RunLab8Service(ES_Event_t ThisEvent)
                     case 0x05: // CCW 45
                         if(new_command != cur_command){
                             DB_printf("CCW 45\n");
-                            RotateCCW(100);
+                            //RotateCCW(100);
+                            
+                            M1Backward(100);
+                            M2Forward(100);
+                            
                             ES_Timer_InitTimer(ROTATION_TIMER, ROTATION_45_DURATION);
                             CurrentState = RotatingCounterClockwise;
                             cur_command = new_command;
@@ -254,8 +260,8 @@ ES_Event_t RunLab8Service(ES_Event_t ThisEvent)
                     case 0x08: // forward half
                         if(new_command != cur_command){
                             DB_printf("Forward Half\n");
-                            M1Forward(50);
-                            M2Forward(50);
+                            M1Forward(75);
+                            M2Forward(75);
                             ES_Timer_InitTimer(FORWARD_TIMER, FORWARD_DURATION);
                             CurrentState = DrivingForward;
                             cur_command = new_command;
@@ -276,8 +282,8 @@ ES_Event_t RunLab8Service(ES_Event_t ThisEvent)
                     case 0x10: // reverse half
                         if(new_command != cur_command){
                             DB_printf("Reverse Half\n");
-                            M1Backward(50);
-                            M2Backward(50);
+                            M1Backward(75);
+                            M2Backward(75);
                             ES_Timer_InitTimer(BACKWARD_TIMER, BACKWARD_DURATION);
                             CurrentState = DrivingBackward;
                             cur_command = new_command;
@@ -298,7 +304,9 @@ ES_Event_t RunLab8Service(ES_Event_t ThisEvent)
                     case 0x20:
                         if(new_command != cur_command){
                             DB_printf("Looking for Beacon\n");
-                            RotateCW(100);
+                            //RotateCW(100);
+                            M1Forward(100); // left wheel
+                            M2Backward(100);
                             //ES_Timer_InitTimer(ROTATION_TIMER, ROTATION_45_DURATION);
                             CurrentState = RotatingClockwise;
                             cur_command = new_command;
@@ -447,12 +455,13 @@ static bool CG_SPI_Init(void) {
 }
 
 static bool Motor_PWM_Init(void) {
-    // Motor 1 init. Set all to output
+    // Motor 1 init. Set all to output. Motor 1 closest to the motor driver on breadboard
     TRISBbits.TRISB8 = 0; // Connects to Enable 1,2
     TRISBbits.TRISB9 = 0; // Connects to 1A
     TRISBbits.TRISB10 = 0; // Connects to 2A
     
-    // Motor 2 init. Set all to output
+    
+    // Motor 2 init. Set all to output. Motor 2 further from the motor driver on breadboard
     TRISBbits.TRISB11 = 0; // Connects to Enable 3,4
     TRISBbits.TRISB12 = 0; // Connects to 3A
     TRISBbits.TRISB13 = 0; // Connects to 4A
@@ -533,13 +542,18 @@ void M2Forward(uint16_t duty) {
 // }
 
 void M1Backward(uint16_t duty) {
-    OC3RS = PWM_PERIOD - ((duty / 100) * PWM_PERIOD);
+    //OC3RS = (PWM_PERIOD * (100 - ((uint8_t)duty + 0.5f)))/100;
+    //DB_printf("%d",OC3RS);
+    OC3RS = 0;
+    //LATBbits.LATB9 = 0;
     LATBbits.LATB10 = 1; // direction backward
     LATBbits.LATB8 = 1; // enable
 }
 
 void M2Backward(uint16_t duty) {
-    OC4RS = PWM_PERIOD - ((duty / 100) * PWM_PERIOD);
+    //OC4RS = (PWM_PERIOD * (100 - ((uint8_t)duty + 0.5f)))/100;
+    OC4RS = 0;
+    //LATBbits.LATB13 = 0;
     LATBbits.LATB12 = 1; // direction backward
     LATBbits.LATB11 = 1; // enable
 }
@@ -550,6 +564,6 @@ void RotateCW(uint16_t duty) {
 }
 
 void RotateCCW(uint16_t duty) {
-    M1Backward((duty / 100) * PWM_PERIOD);       // left wheel
-    M2Forward((duty / 100) * PWM_PERIOD);       // right wheel
+    M1Backward(duty);       // left wheel
+    M2Forward(duty);       // right wheel
 }
