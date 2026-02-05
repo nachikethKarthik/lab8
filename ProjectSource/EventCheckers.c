@@ -107,9 +107,12 @@ static uint8_t LastTapeState = 0;  // 0 = no tape, 1 = tape detected
 static uint8_t LastBeaconState = 0;  // 0 = no beacon, 1 = beacon detected
 static uint8_t LastRA2State = 0;     // For beacon detection
 static uint32_t EdgeCount = 0;       // Count of edges seen
+static bool BeaconArmed = false;
 
 // ADC results array - index 0 will have AN9 result
 static uint32_t ADCResults[1];
+
+
 /****************************************************************************
  Function
    Check4Keystroke
@@ -184,10 +187,10 @@ bool Check4Tape(void)
     // Post tape detected event
     ES_Event_t ThisEvent;
     ThisEvent.EventType = ES_TAPE_DETECTED;
-    ThisEvent.EventParam = (uint16_t)TapeSensorValue;  // Include ADC value as param
+    ThisEvent.EventParam = (uint16_t)TapeSensorValue; 
     ES_PostAll(ThisEvent);
     
-//    DB_printf("Tape Event\n");
+    DB_printf("Tape Event\n");
     ReturnVal = true;
   }
   
@@ -214,6 +217,14 @@ bool Check4Tape(void)
 ****************************************************************************/
 bool Check4Beacon(void)
 {
+    
+    // If not armed, don't do anything
+    if (!BeaconArmed)
+    {
+        return false;
+    }
+    
+    
   bool ReturnVal = false;
   uint8_t CurrentRA2 = PORTAbits.RA2;
   
@@ -244,11 +255,12 @@ bool Check4Beacon(void)
     ThisEvent.EventParam = (uint16_t)EdgeCount;
     ES_PostAll(ThisEvent);
     ReturnVal = true;
-    EdgeCount = 0;  // reset AFTER posting event
+    EdgeCount = 0;
+    BeaconArmed = false;  // Disarm after detection - only one event
     DB_printf("Beacon detected Event\n");
   }
   
-  LastBeaconState = CurrentBeaconState;
+  LastBeaconState = CurrentBeaconState; // actually this line is not necessary because the event checker is no longer armed
   
   return ReturnVal;
 }
@@ -292,4 +304,11 @@ bool InitEventCheckerHardware(void)
 
   
   return true;
+}
+
+void ArmBeaconDetector(void)
+{
+    LastBeaconState = 0;
+    EdgeCount = 0;
+    BeaconArmed = true;  
 }
