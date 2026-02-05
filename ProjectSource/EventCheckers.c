@@ -93,7 +93,7 @@ bool Check4Lock(void)
 /*----------------------------- Module Defines ----------------------------*/
 
 // Tape sensor threshold - adjust this based on actual sensor readings
-#define TAPE_THRESHOLD 120  
+#define TAPE_THRESHOLD 500 
 
 // Beacon detection parameters
 // Beacon frequency is 1427 Hz, so period is ~700 us
@@ -169,7 +169,6 @@ bool Check4Tape(void)
   // Read the ADC value from AN9
   ADC_MultiRead(ADCResults);
   uint32_t TapeSensorValue = ADCResults[0];
-  
   // Determine current tape state based on threshold
   // Adjust the comparison direction based on your sensor behavior
   if (TapeSensorValue < TAPE_THRESHOLD)
@@ -196,7 +195,8 @@ bool Check4Tape(void)
   
   // Update last state for next time
   LastTapeState = CurrentTapeState;
-  
+//  DB_printf("%d\n\r", TapeSensorValue);
+
   return ReturnVal;
 }
 

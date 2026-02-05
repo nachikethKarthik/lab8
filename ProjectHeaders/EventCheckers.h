@@ -26,8 +26,9 @@ bool Check4Keystroke(void);
 bool Check4Tape(void);
 bool Check4Beacon(void);
 
-bool InitEventCheckerHardware(void);
 
+bool InitEventCheckerHardware(void);
+void ArmBeaconDetector(void);
 
 
 

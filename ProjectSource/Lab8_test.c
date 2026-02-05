@@ -25,6 +25,7 @@ next lower level in the hierarchy that are sub-machines to this machine
  */
 #include "../ProjectHeaders/Lab8_test.h"
 #include "../ProjectHeaders/PIC32_SPI_HAL.h"
+#include "../ProjectHeaders/PIC32_AD_Lib.h"
 
 
 #include <xc.h>
@@ -35,6 +36,7 @@ next lower level in the hierarchy that are sub-machines to this machine
 #include "ES_Port.h"
 #include "terminal.h"
 #include "dbprintf.h"
+#include "EventCheckers.h"
 
 /*----------------------------- Module Defines ----------------------------*/
 
@@ -50,8 +52,8 @@ next lower level in the hierarchy that are sub-machines to this machine
 #define CG_SDO_OUT_PIN SPI_RPA1
 #define CG_SDI_IN_PIN SPI_RPB5
 
-#define ROTATION_45_DURATION 1500
-#define ROTATION_90_DURATION 3000
+#define ROTATION_45_DURATION 625
+#define ROTATION_90_DURATION 1100
 #define FORWARD_DURATION 3000
 #define BACKWARD_DURATION 3000
 
@@ -86,7 +88,7 @@ uint8_t CG_command = 0x00;
 uint8_t cur_command = 0x01;
 uint8_t new_command = 0x01;
 
-//static uint32_t TapeADCResults[1]; // Used for testing tape sensor
+static uint32_t TapeADCResults[1]; // Used for testing tape sensor
 /*------------------------------ Module Code ------------------------------*/
 
 /****************************************************************************
@@ -125,6 +127,7 @@ bool InitLab8Service(uint8_t Priority)
   InitEventCheckerHardware();
   
   ES_Timer_InitTimer(QUERY_TIMER, 100);
+  ES_Timer_InitTimer(PRINT_TIMER,500);
 
   if (ES_PostToService(MyPriority, ThisEvent) == true)
   {
@@ -177,9 +180,17 @@ bool PostLab8Service(ES_Event_t ThisEvent) {
 ES_Event_t RunLab8Service(ES_Event_t ThisEvent)
 {
     ES_Event_t ReturnEvent = { .EventType = ES_NO_EVENT };
+    
+    if (ThisEvent.EventType == ES_TIMEOUT && ThisEvent.EventParam == PRINT_TIMER){
+            ADC_MultiRead(TapeADCResults);
+            uint32_t TapeSensorValue = TapeADCResults[0];
+            DB_printf("%d\n\r",TapeSensorValue);
+            ES_Timer_InitTimer(PRINT_TIMER, 500);
+    }
 
     switch (CurrentState)
     {
+        
         case InitPState:
         {
             if (ThisEvent.EventType == ES_INIT)
@@ -187,8 +198,6 @@ ES_Event_t RunLab8Service(ES_Event_t ThisEvent)
                 CurrentState = Waiting;
                 ES_Timer_InitTimer(QUERY_TIMER, 100);
             }
-            
-
         }
         break;
 
@@ -200,6 +209,9 @@ ES_Event_t RunLab8Service(ES_Event_t ThisEvent)
                 CG_command = (uint8_t)SPI1BUF;
                 //DB_printf("%u\n",CG_command);
                 new_command = CG_command;
+//                ADC_MultiRead(TapeADCResults);
+//                uint32_t TapeSensorValue = TapeADCResults[0];
+                
                 //current_command = CG_command
                 switch (CG_command)
                 {
@@ -304,9 +316,10 @@ ES_Event_t RunLab8Service(ES_Event_t ThisEvent)
                     case 0x20:
                         if(new_command != cur_command){
                             DB_printf("Looking for Beacon\n");
+                            ArmBeaconDetector();
                             //RotateCW(100);
-                            M1Forward(100); // left wheel
-                            M2Backward(100);
+                            M1Forward(60); // left wheel
+                            M2Backward(60);
                             //ES_Timer_InitTimer(ROTATION_TIMER, ROTATION_45_DURATION);
                             CurrentState = RotatingClockwise;
                             cur_command = new_command;
@@ -317,7 +330,7 @@ ES_Event_t RunLab8Service(ES_Event_t ThisEvent)
                         if(new_command != cur_command){
                             DB_printf("Forward until tape\n");
                             M1Forward(100);
-                            M2Forward(100);
+                            M2Forward(96);
                             CurrentState = DrivingForward;
                             cur_command = new_command;
                         }
@@ -334,7 +347,7 @@ ES_Event_t RunLab8Service(ES_Event_t ThisEvent)
 
         case DrivingForward:
         {
-            if (ThisEvent.EventType == ES_TAPE_DETECTED)
+            if (ThisEvent.EventType == ES_TAPE_DETECTED && cur_command == 0x20)
             {
                 StopMotors();
                 CurrentState = Waiting;
@@ -544,7 +557,8 @@ void M2Forward(uint16_t duty) {
 void M1Backward(uint16_t duty) {
     //OC3RS = (PWM_PERIOD * (100 - ((uint8_t)duty + 0.5f)))/100;
     //DB_printf("%d",OC3RS);
-    OC3RS = 0;
+    //OC3RS = 0;
+    OC3RS = (PWM_PERIOD * (100 - (uint8_t)duty))/100;
     //LATBbits.LATB9 = 0;
     LATBbits.LATB10 = 1; // direction backward
     LATBbits.LATB8 = 1; // enable
@@ -552,7 +566,8 @@ void M1Backward(uint16_t duty) {
 
 void M2Backward(uint16_t duty) {
     //OC4RS = (PWM_PERIOD * (100 - ((uint8_t)duty + 0.5f)))/100;
-    OC4RS = 0;
+    //OC4RS = 0;
+    OC4RS = (PWM_PERIOD * (100 - (uint8_t)duty))/100;
     //LATBbits.LATB13 = 0;
     LATBbits.LATB12 = 1; // direction backward
     LATBbits.LATB11 = 1; // enable

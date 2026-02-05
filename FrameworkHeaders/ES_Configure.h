@@ -170,7 +170,7 @@ typedef enum
 #define TIMER1_RESP_FUNC PostLab8Service
 #define TIMER2_RESP_FUNC PostLab8Service
 #define TIMER3_RESP_FUNC PostLab8Service
-#define TIMER4_RESP_FUNC TIMER_UNUSED
+#define TIMER4_RESP_FUNC PostLab8Service
 #define TIMER5_RESP_FUNC TIMER_UNUSED
 #define TIMER6_RESP_FUNC TIMER_UNUSED
 #define TIMER7_RESP_FUNC TIMER_UNUSED
@@ -195,5 +195,7 @@ typedef enum
 #define ROTATION_TIMER 1
 #define FORWARD_TIMER 2
 #define BACKWARD_TIMER 3
+
+#define PRINT_TIMER 4
 
 #endif /* ES_CONFIGURE_H */
