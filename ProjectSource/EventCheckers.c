@@ -190,7 +190,7 @@ bool Check4Tape(void)
     ThisEvent.EventParam = (uint16_t)TapeSensorValue; 
     ES_PostAll(ThisEvent);
     
-    DB_printf("Tape Event\n");
+//    DB_printf("Tape Event\n");
     ReturnVal = true;
   }
   

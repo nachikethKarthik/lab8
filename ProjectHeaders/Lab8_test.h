@@ -19,8 +19,12 @@
 // State definitions for use with the query function
 typedef enum
 {
-  InitPState, UnlockWaiting, _1UnlockPress,
-  _2UnlockPresses, Locked
+    InitPState, 
+    Waiting,
+    DrivingForward, 
+    DrivingBackward,
+    RotatingClockwise,
+    RotatingCounterClockwise
 }TemplateState_t;
 
 // Public Function Prototypes
