@@ -184,9 +184,19 @@ ES_Event_t RunLab8Service(ES_Event_t ThisEvent)
     if (ThisEvent.EventType == ES_TIMEOUT && ThisEvent.EventParam == PRINT_TIMER){
             ADC_MultiRead(TapeADCResults);
             uint32_t TapeSensorValue = TapeADCResults[0];
-            DB_printf("%d\n\r",TapeSensorValue);
+//            DB_printf("%d\n\r",TapeSensorValue);
             ES_Timer_InitTimer(PRINT_TIMER, 500);
     }
+    if (ThisEvent.EventType == ES_TIMEOUT && ThisEvent.EventParam == QUERY_TIMER){
+        SPIOperate_SPI1_Send8Wait(CG_QUERY_BYTE);
+        CG_command = (uint8_t)SPI1BUF;
+        new_command = CG_command;
+        ES_Timer_InitTimer(QUERY_TIMER, 100);
+        DB_printf("%u\r\n",new_command);
+    }
+    
+    
+    
 
     switch (CurrentState)
     {
@@ -205,10 +215,10 @@ ES_Event_t RunLab8Service(ES_Event_t ThisEvent)
         {
             if (ThisEvent.EventType == ES_TIMEOUT && ThisEvent.EventParam == QUERY_TIMER)
             {
-                SPIOperate_SPI1_Send8Wait(CG_QUERY_BYTE);
-                CG_command = (uint8_t)SPI1BUF;
-                //DB_printf("%u\n",CG_command);
-                new_command = CG_command;
+//                SPIOperate_SPI1_Send8Wait(CG_QUERY_BYTE);
+//                CG_command = (uint8_t)SPI1BUF;
+//                //DB_printf("%u\n",CG_command);
+//                new_command = CG_command;
 //                ADC_MultiRead(TapeADCResults);
 //                uint32_t TapeSensorValue = TapeADCResults[0];
                 
@@ -274,7 +284,7 @@ ES_Event_t RunLab8Service(ES_Event_t ThisEvent)
                             DB_printf("Forward Half\n");
                             M1Forward(75);
                             M2Forward(75);
-                            ES_Timer_InitTimer(FORWARD_TIMER, FORWARD_DURATION);
+                            //ES_Timer_InitTimer(FORWARD_TIMER, FORWARD_DURATION);
                             CurrentState = DrivingForward;
                             cur_command = new_command;
                         }
@@ -285,7 +295,7 @@ ES_Event_t RunLab8Service(ES_Event_t ThisEvent)
                             DB_printf("Forward Full\n");
                             M1Forward(100);
                             M2Forward(100);
-                            ES_Timer_InitTimer(FORWARD_TIMER, FORWARD_DURATION);
+                            //ES_Timer_InitTimer(FORWARD_TIMER, FORWARD_DURATION);
                             CurrentState = DrivingForward;
                             cur_command = new_command;
                         }
@@ -296,7 +306,7 @@ ES_Event_t RunLab8Service(ES_Event_t ThisEvent)
                             DB_printf("Reverse Half\n");
                             M1Backward(75);
                             M2Backward(75);
-                            ES_Timer_InitTimer(BACKWARD_TIMER, BACKWARD_DURATION);
+                            //ES_Timer_InitTimer(BACKWARD_TIMER, BACKWARD_DURATION);
                             CurrentState = DrivingBackward;
                             cur_command = new_command;
                         }
@@ -307,7 +317,7 @@ ES_Event_t RunLab8Service(ES_Event_t ThisEvent)
                             DB_printf("Reverse Full\n");
                             M1Backward(100);
                             M2Backward(100);
-                            ES_Timer_InitTimer(BACKWARD_TIMER, BACKWARD_DURATION);
+                            //ES_Timer_InitTimer(BACKWARD_TIMER, BACKWARD_DURATION);
                             CurrentState = DrivingBackward;
                             cur_command = new_command;
                         }
@@ -347,28 +357,31 @@ ES_Event_t RunLab8Service(ES_Event_t ThisEvent)
 
         case DrivingForward:
         {
-            if (ThisEvent.EventType == ES_TAPE_DETECTED && cur_command == 0x20)
+            
+            
+            
+            if (ThisEvent.EventType == ES_TAPE_DETECTED && cur_command == 0x40)
             {
                 StopMotors();
                 CurrentState = Waiting;
-                ES_Timer_InitTimer(QUERY_TIMER, 100);
+                //ES_Timer_InitTimer(QUERY_TIMER, 100);
             }
-            else if (ThisEvent.EventType == ES_TIMEOUT && ThisEvent.EventParam == FORWARD_TIMER)
+            if (new_command != cur_command)
             {
                 StopMotors();
                 CurrentState = Waiting;
-                ES_Timer_InitTimer(QUERY_TIMER, 100);
+                //ES_Timer_InitTimer(QUERY_TIMER, 100);
             }
         }
         break;
 
         case DrivingBackward:
         {
-            if (ThisEvent.EventType == ES_TIMEOUT && ThisEvent.EventParam == BACKWARD_TIMER)
+            if (new_command != cur_command)
             {
                 StopMotors();
                 CurrentState = Waiting;
-                ES_Timer_InitTimer(QUERY_TIMER, 100);
+                //ES_Timer_InitTimer(QUERY_TIMER, 100);
             }
         }
         break;
@@ -380,12 +393,12 @@ ES_Event_t RunLab8Service(ES_Event_t ThisEvent)
                 //DB_printf("RCW end\n");
                 StopMotors();
                 CurrentState = Waiting;
-                ES_Timer_InitTimer(QUERY_TIMER, 100);
+                //ES_Timer_InitTimer(QUERY_TIMER, 100);
             }
             if (cur_command == 0x20 && ThisEvent.EventType == ES_BEACON_DETECTED){
                 StopMotors();
                 CurrentState = Waiting;
-                ES_Timer_InitTimer(QUERY_TIMER, 100);
+                //ES_Timer_InitTimer(QUERY_TIMER, 100);
             }
         }
         break;
@@ -396,7 +409,7 @@ ES_Event_t RunLab8Service(ES_Event_t ThisEvent)
             {
                 StopMotors();
                 CurrentState = Waiting;
-                ES_Timer_InitTimer(QUERY_TIMER, 100);
+                //ES_Timer_InitTimer(QUERY_TIMER, 100);
             }
         }
         break;
