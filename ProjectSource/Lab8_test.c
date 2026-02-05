@@ -188,15 +188,12 @@ ES_Event_t RunLab8Service(ES_Event_t ThisEvent)
             ES_Timer_InitTimer(PRINT_TIMER, 500);
     }
     if (ThisEvent.EventType == ES_TIMEOUT && ThisEvent.EventParam == QUERY_TIMER){
-        SPIOperate_SPI1_Send8Wait(CG_QUERY_BYTE);
+        SPIOperate_SPI1_Send8Wait(CG_QUERY_BYTE);       // set up an interrupt to fire when anything is in the buffer, when receive buffer is not empty
         CG_command = (uint8_t)SPI1BUF;
         new_command = CG_command;
         ES_Timer_InitTimer(QUERY_TIMER, 100);
         DB_printf("%u\r\n",new_command);
     }
-    
-    
-    
 
     switch (CurrentState)
     {
@@ -357,9 +354,6 @@ ES_Event_t RunLab8Service(ES_Event_t ThisEvent)
 
         case DrivingForward:
         {
-            
-            
-            
             if (ThisEvent.EventType == ES_TAPE_DETECTED && cur_command == 0x40)
             {
                 StopMotors();
